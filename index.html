@@ -13186,5 +13186,453 @@ applyDisp();init();render();
 })();
 </script>
 
+<!-- =====================================================================
+  LIFEVERSE V26 MAJOR UPDATE — paste RIGHT BEFORE </body>, AFTER every
+  other script (must be LAST, after V25). Everything lives in S.lv26.
+
+  FIXES
+   - Friends & Contacts: Text / Dinner / Trip / Advice did nothing because
+     the buttons were written onclick="LV25.fr(0,"t")" (quotes inside quotes).
+     The page is rebuilt, relationship now really goes up, and the root
+     repair now also catches mixed number + text arguments everywhere.
+  NEW
+   - 📱 Friends Plus: 7 actions (Text, Dinner, Trip, Advice, Gift, Confide,
+     Favor), friend levels, search, show-all, birthday decisions
+   - 🏦 Money Center expansion (6 tabs): Wealth Report + Financial Health
+     Score, Fixed Deposits, Retirement Auto-Invest with employer match,
+     Commodities (gold, silver, platinum, copper), Peer Lending, Insurance
+     (life + income protection)
+   - 💼 Job Market page: yearly listings, interview odds, resume tools,
+     career fair
+   - 🎰 Casino: Roulette and Slots added under the old games
+   - 9 new achievements
+  ===================================================================== -->
+<style>
+.lv26t{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 12px}
+.lv26sp{vertical-align:middle}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__LV26)return;window.__LV26=1;
+
+/* =========================================================
+   0. ROOT REPAIR v2: onclick="fn(0,"t")" -> onclick="fn(0,'t')"
+   ========================================================= */
+(function(){
+ const d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
+ if(!d||!d.set||window.__LV26Q)return;window.__LV26Q=1;
+ const re=/onclick="([\w.$]+\([^>]*?)\)"(?=[\s>])/g;
+ Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,enumerable:d.enumerable,get:d.get,
+  set:function(v){
+   if(typeof v==='string'&&v.indexOf('onclick="')>-1)v=v.replace(re,(m,a)=>'onclick="'+a.replace(/"/g,"'")+')"');
+   d.set.call(this,v);}});
+})();
+
+/* ---------------- helpers ---------------- */
+const q=id=>document.getElementById(id),E=escapeHTML,r=rand,pick=a=>a[r(0,a.length-1)];
+const shuf=a=>a.map(x=>[Math.random(),x]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+const btn=(l,c,cls,d)=>`<button class="action ${cls||''}" ${d?'disabled':''} onclick="${c}">${l}</button>`;
+const bar=(l,v)=>`<div>${l} <b>${Math.round(v)}%</b><div class="progress"><div style="width:${clamp(v,0,100)}%"></div></div></div>`;
+const sm=n=>(n<0?'−':'+')+money(Math.abs(n));
+const cc=x=>x>=0?'green':'red';
+const num=v=>{const n=Number(String(v==null?'':v).replace(/[$,\s]/g,''));return Number.isFinite(n)?n:NaN;};
+const grid=a=>`<div class="grid">${a.join('')}</div>`;
+const cd=(t,p,b)=>`<div class="card"><h3>${t}</h3><p class="muted">${p}</p>${b}</div>`;
+function fx(o){for(const k in o){const v=o[k];
+ if(k==='money')S.money=Math.max(0,S.money+v);
+ else if(k==='stress'){if(S.lifePlus)S.lifePlus.stress=clamp(safeNumber(S.lifePlus.stress,0)+v,0,100);}
+ else S[k]=clamp(Math.round(safeNumber(S[k],50)+v),0,100);}}
+function toast(m){let t=q('lv26toast');if(!t){t=document.createElement('div');t.id='lv26toast';t.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:92vw;background:#0b1220;border:1px solid #f472b6;color:#eee;padding:10px 14px;border-radius:10px;z-index:500;transition:.2s;pointer-events:none';document.body.appendChild(t);}t.textContent=m;t.style.opacity=1;clearTimeout(t._h);t._h=setTimeout(()=>t.style.opacity=0,3500);}
+const Q=[];let dr=0;
+function later(f){Q.push(f);if(dr)return;dr=1;(function t(){if(!Q.length){dr=0;return;}const bg=q('popupBg');if(bg.style.display==='flex'||q('startMenu').style.display==='flex'){setTimeout(t,700);return;}Q.shift()();setTimeout(t,700);})();}
+function spark(a,w,h,col){if(!a||a.length<2)return'';const mn=Math.min(...a),mx=Math.max(...a),d=(mx-mn)||1;return `<svg class="lv26sp" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="${col||'#60a5fa'}" stroke-width="2" points="${a.map((v,i)=>(i/(a.length-1)*w).toFixed(1)+','+(h-2-(v-mn)/d*(h-4)).toFixed(1)).join(' ')}"/></svg>`;}
+const econ=()=>(S.v6&&S.v6.econ&&S.v6.econ.state)||'Stable';
+
+/* ---------------- data ---------------- */
+const COM=[['gold','🥇','Gold',2000,.10,.04,'Safe haven. Tends to rise in recessions.'],['silver','🥈','Silver',25,.25,.05,'Volatile cousin of gold.'],['plat','⚙️','Platinum',1000,.18,.05,'Industrial metal. Follows the economy.'],['copper','🔶','Copper',4,.22,.06,'Booms in good times, falls in bad.']];
+const CDT=[[1,.035],[3,.05],[5,.065]];
+const LIFE=[0,250000,1000000,2500000];
+const CO=['Apex','Nimbus','Orion','Helix','Vertex','Summit','Zenith','Lumen','Atlas','Cobalt','Nova','Pioneer'],SUF=['Group','Labs','Holdings','Partners','Systems','Industries','Works','Global'];
+const BN=['Marcus','Elena','Tomas','Aiko','Dev','Sara','Jamal','Chen','Nina','Omar','Lucy','Pedro','Ines','Kofi','Mira'];
+const FA=[['t','💬 Text',0],['d','🍽️ Dinner ($60)',60],['x','🧳 Trip ($500)',500],['a','🧠 Advice',0],['g','🎁 Gift ($100)',100],['c','🤫 Confide',0],['f','🙏 Favor',0]];
+
+/* ---------------- state ---------------- */
+function init(){
+ if(!S.lv26||typeof S.lv26!=='object')S.lv26={};
+ const d={used:{},ly:-1,mt:'wealth',cds:[],cdDone:0,k:{pct:0,total:0,match:0},hold:{},cp:{},p2p:[],offers:[],earned:0,defaults:0,
+  ins:{life:0,inc:false,claim:0},lastSal:0,jobs:[],resume:0,apps:0,hired:0,ft:'',fall:false,rhit:0,ro:'red'};
+ for(const k in d)if(S.lv26[k]===undefined||S.lv26[k]===null)S.lv26[k]=d[k];
+ const L=S.lv26;
+ COM.forEach(c=>{if(!L.cp[c[0]])L.cp[c[0]]={p:c[3],h:[c[3]]};});
+ if(!Array.isArray(L.offers)||(!L.offers.length&&S.age>=18))L.offers=newOffers();
+}
+const U=id=>S.lv26.used[id]||0;
+function use(id,max,label,cost){cost=cost||0;
+ if(U(id)>=max){popup('⏳ Limit reached',`You already used <b>${E(label)}</b> ${max} time(s) this year. Age up to reset.`);return false;}
+ if(S.money<cost){popup('💸 Not enough money',`${E(label)} costs <b>${money(cost)}</b>.`);return false;}
+ S.money-=cost;S.lv26.used[id]=U(id)+1;S.stats.activities++;return true;}
+
+/* =========================================================
+   1. FRIENDS PLUS (fixes the broken buttons)
+   ========================================================= */
+function fst(f){if(!f.l26||f.l26.y!==S.age)f.l26={y:S.age,d:{}};return f.l26;}
+const lvl=x=>x>=90?'💛 Best friend':x>=70?'💚 Close friend':x>=40?'🙂 Friend':'👋 Acquaintance';
+function friendAct(i,a){
+ const f=(S.friends||[])[i];if(!f)return;
+ const def=FA.find(x=>x[0]===a);if(!def)return;
+ if(S.age<5)return popup('Too Young','You need to be a little older.');
+ const st=fst(f);
+ if(st.d[a])return popup('⏳ Already done',`You already did that with <b>${E(f.name)}</b> this year. Age up to reset.`);
+ if(a==='x'&&U('trip')>=2)return popup('⏳ Limit reached','Two friend trips a year.');
+ if(a==='f'){if(f.relationship<70)return popup('🙏 Not close enough','You need a relationship of 70%+ to ask a favor.');if(U('fav')>=1)return popup('⏳ Limit reached','One favor a year.');}
+ if(S.money<def[2])return popup('💸 Not enough money',`That costs <b>${money(def[2])}</b>.`);
+ S.money-=def[2];st.d[a]=1;
+ let g=0,msg='';
+ if(a==='t'){g=r(3,6);fx({happiness:1});msg='You texted '+f.name+'.';}
+ else if(a==='d'){g=r(8,14);fx({happiness:3});msg='You had dinner with '+f.name+'.';}
+ else if(a==='x'){S.lv26.used.trip=U('trip')+1;g=r(14,22);fx({happiness:6});if(chance(30))S.countries=safeNumber(S.countries,1)+1;msg='You took a trip with '+f.name+'.';}
+ else if(a==='a'){g=r(4,8);fx({smarts:1,happiness:1});msg=f.name+' gave you good advice.';}
+ else if(a==='g'){g=r(6,11);fx({happiness:2});msg='You gave '+f.name+' a gift.';}
+ else if(a==='c'){g=r(5,9);fx({happiness:2,stress:-5});msg='You confided in '+f.name+'.';}
+ else{S.lv26.used.fav=1;const m=r(200,1500);S.money+=m;g=-r(8,14);msg=f.name+' did you a favor worth '+money(m)+'. It cost some goodwill.';}
+ f.relationship=clamp(safeNumber(f.relationship,50)+g,0,100);
+ f.seen=true;f.neg=0;S.stats.relationships++;
+ if(a!=='f')S.stats.activities++;
+ addEvent('🧑‍🤝‍🧑 '+msg+' ('+(g>=0?'+':'')+g+'% relationship)');
+ toast(msg+' '+(g>=0?'+':'')+g+'% ❤️');
+ render();
+}
+function friendCards(){
+ const L=S.lv26,flt=String(L.ft||'').toLowerCase();
+ const all=(S.friends||[]).map((f,i)=>({f,i})).filter(x=>!flt||String(x.f.name).toLowerCase().includes(flt)).sort((a,b)=>b.f.relationship-a.f.relationship);
+ const shown=L.fall||flt?all:all.slice(0,15);
+ if(!shown.length)return '<div class="card muted">No friends match. Make some on the Family page or at clubs, school and events.</div>';
+ return `<div class="grid">${shown.map(({f,i})=>{const st=fst(f);
+  return `<div class="card"><h3>🧑‍🤝‍🧑 ${E(f.name)}</h3><p class="muted">${lvl(f.relationship)}</p><div>❤️ <b>${Math.round(f.relationship)}%</b><div class="progress"><div style="width:${clamp(f.relationship,0,100)}%"></div></div></div>
+  ${FA.map(a=>{const done=st.d[a[0]];let dis=done;if(a[0]==='x'&&U('trip')>=2)dis=true;if(a[0]==='f'&&(f.relationship<70||U('fav')>=1))dis=true;
+   return btn(a[1]+(done?' ✓':''),`LV26.fr(${i},'${a[0]}')`,a[0]==='x'?'gold':a[0]==='f'?'':'',dis);}).join('')}</div>`;}).join('')}</div>${!L.fall&&!flt&&all.length>15?'<p class="muted">Showing your closest 15.</p>':''}`;
+}
+function pFriends(){
+ const L=S.lv26,F=S.friends||[],avg=F.length?Math.round(F.reduce((a,f)=>a+f.relationship,0)/F.length):0;
+ return `<div class="grid"><div class="stat"><small>🧑‍🤝‍🧑 Friends</small><strong>${F.length}</strong></div><div class="stat"><small>❤️ Average</small><strong>${avg}%</strong></div><div class="stat"><small>💚 Close (70%+)</small><strong>${F.filter(f=>f.relationship>=70).length}</strong></div><div class="stat"><small>💛 Best (90%+)</small><strong>${F.filter(f=>f.relationship>=90).length}</strong></div><div class="stat"><small>🧳 Trips this year</small><strong>${U('trip')}/2</strong></div></div><br>
+ <div class="card"><p class="muted">Each action works once per friend per year and raises your relationship. Trips: 2 a year. Favors need 70%+ and give you money but cost goodwill (1 a year). Friends you ignore for years may leave.</p>
+ <input id="lv26ft" type="search" placeholder="🔎 Search friends..." value="${E(L.ft)}" oninput="LV26.ftext(this.value)">${btn(L.fall?'Show closest 15':'Show all friends','LV26.fall()')}</div><div id="lv26fl">${friendCards()}</div>`;
+}
+function friendYear(){
+ const fl=(S.friends||[]).filter(f=>f.relationship>=40);
+ if(S.age>=8&&fl.length&&chance(25)){const f=pick(fl);
+  later(()=>decision('🎂 '+E(f.name)+"'s birthday",E(f.name)+' is celebrating a birthday. What do you do?',[
+   {title:'🎁 Buy a gift ($50)',description:'Relationship +8.',class:'good',action:()=>{if(S.money<50){toast('Not enough cash.');render();return;}S.money-=50;f.relationship=clamp(f.relationship+8,0,100);addEvent('🎂 You gave '+f.name+' a birthday gift.');render();}},
+   {title:'💌 Send a card',description:'Relationship +3.',action:()=>{f.relationship=clamp(f.relationship+3,0,100);render();}},
+   {title:'🙈 Forget about it',description:'Relationship −4.',class:'danger',action:()=>{f.relationship=clamp(f.relationship-4,0,100);render();}}]));}
+}
+
+/* =========================================================
+   2. MONEY CENTER EXPANSION
+   ========================================================= */
+const stocksVal=()=>{try{if(!S.v6||!S.v6.stocks)return 0;let t=0;for(const k in(S.v6.hold||{})){const s=S.v6.stocks[k];if(s)t+=S.v6.hold[k]*s.p;}return Math.round(t);}catch(e){return 0;}};
+const cryptoVal=()=>{let t=0;try{if(S.lv12&&S.lv12.crypto)t+=S.lv12.crypto.u*S.lv12.crypto.p;if(S.lv21)for(const k in S.lv21.coins){const c=S.lv21.coins[k];t+=c.u*c.p;}}catch(e){}return Math.round(t);};
+const propVal=()=>S.houses.reduce((a,n)=>{const f=houses.find(h=>h[0]===n);return a+(f?f[1]:0);},0);
+const carVal=()=>S.cars.reduce((a,n)=>{const f=cars.find(c=>c[0]===n);return a+(f?f[1]:0);},0);
+const cdVal=()=>S.lv26?S.lv26.cds.reduce((a,c)=>a+c.p,0):0;
+const p2pVal=()=>S.lv26?S.lv26.p2p.reduce((a,l)=>a+l.p,0):0;
+const comVal=()=>{const L=S.lv26;if(!L)return 0;let t=0;COM.forEach(c=>{const h=L.hold[c[0]];if(h&&h.u&&L.cp[c[0]])t+=h.u*L.cp[c[0]].p;});return Math.round(t);};
+function debts(){return[['💵 Personal loans',((S.lv10&&S.lv10.loans)||[]).reduce((a,l)=>a+l.p,0)],['💳 Credit card',(S.lv13&&S.lv13.cc)||0],['🎓 Student loans',(S.lv13&&S.lv13.sl)||0],['🏠 Mortgages',((S.lv11&&S.lv11.mort)||[]).reduce((a,m)=>a+m.bal,0)]];}
+
+function tWealth(){
+ const LP=S.lifePlus||{};
+ const A=[['💵 Cash',S.money],['🏦 Savings',LP.savings||0],['🧯 Emergency fund',LP.emergencyFund||0],['🌴 Retirement fund',LP.retirement||0],['🔒 Fixed deposits',cdVal()],['📈 Generic investments',S.investments||0],['📊 Stocks & funds',stocksVal()],['🪙 Crypto',cryptoVal()],['🥇 Commodities',comVal()],['🤝 Peer loans',p2pVal()],['📜 Bonds',(S.lv13&&S.lv13.bonds)||0],['🏠 Property',propVal()],['🚗 Vehicles',carVal()]];
+ const D=debts(),ta=A.reduce((a,x)=>a+x[1],0),td=D.reduce((a,x)=>a+x[1],0);
+ const liquid=S.money+(LP.savings||0)+(LP.emergencyFund||0),target=Math.max(10000,(S.salary||20000)*.5);
+ const s1=Math.min(1,liquid/target)*40,s2=td<=0?30:Math.max(0,30-30*td/Math.max(1,ta)*1.5),s3=S.age<=22?15:Math.min(30,(LP.retirement||0)/Math.max(1,(S.age-20)*3000)*30);
+ const score=Math.round(clamp(s1+s2+s3,0,100)),lab=score>=80?'Excellent':score>=60?'Good':score>=40?'Fair':'Needs work';
+ const tips=[];if(s1<30)tips.push('Build your cash cushion (about half a year of salary, min $10,000).');if(td>0)tips.push('Pay down debt: '+money(td)+' owed.');if(s3<20&&S.age>22)tips.push('Boost retirement savings (Retirement Auto-Invest tab).');if(!tips.length)tips.push('Your finances look healthy. Consider diversifying.');
+ return `<div class="grid"><div class="stat"><small>💰 Total assets</small><strong>${money(ta)}</strong></div><div class="stat"><small>💳 Total debt</small><strong class="${td?'red':''}">${money(td)}</strong></div><div class="stat"><small>💎 Net (this list)</small><strong class="${cc(ta-td)}">${money(ta-td)}</strong></div><div class="stat"><small>🩺 Financial health</small><strong>${score}/100 • ${lab}</strong></div></div><br>
+ ${bar('Financial health score',score)}<p class="muted">💡 ${tips.map(E).join('<br>💡 ')}</p>
+ <div class="card"><h3>Assets</h3><div style="overflow-x:auto"><table><tr><th>Category</th><th>Value</th><th>Share</th></tr>${A.filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(x=>`<tr><td>${x[0]}</td><td>${money(x[1])}</td><td>${ta?Math.round(x[1]/ta*100):0}%</td></tr>`).join('')||'<tr><td colspan="3">Nothing yet.</td></tr>'}</table></div></div>
+ <div class="card"><h3>Debts</h3>${D.filter(x=>x[1]>0).map(x=>`<p>${x[0]}: <b class="red">${money(x[1])}</b></p>`).join('')||'<p class="green">No debts.</p>'}</div>
+ <p class="muted">The game's official Net Worth (${money(netWorth())}) uses its own rules, so it can differ slightly from this list.</p>`;
+}
+
+/* ---- fixed deposits ---- */
+function openCD(ti){
+ if(S.age<18)return popup('🔒 Too young','Fixed deposits are for ages 18+.');
+ const a=Math.floor(num((q('lv26cdA')||{}).value)),L=S.lv26,t=CDT[ti];
+ if(!(a>=1000))return popup('Invalid amount','The minimum deposit is $1,000.');
+ if(a>S.money)return popup('💸 Not enough cash',`You have ${money(S.money)}.`);
+ if(L.cds.length>=6)return popup('🔒 Limit','You can hold 6 fixed deposits at a time.');
+ S.money-=a;L.cds.push({p:a,t:t[0],r:t[1],mat:S.age+t[0],open:S.age});
+ addEvent(`🔒 ${playerName()} locked ${money(a)} in a ${t[0]}-year fixed deposit at ${(t[1]*100).toFixed(1)}%.`);toast('Fixed deposit opened');render();}
+function breakCD(i){const L=S.lv26,c=L.cds[i];if(!c)return;
+ const back=Math.round(c.p*.97);if(!confirm(`Break this deposit early? You forfeit all interest and a 3% penalty. You get ${money(back)}.`))return;
+ S.money+=back;L.cds.splice(i,1);addEvent(`🔓 ${playerName()} broke a fixed deposit early.`);render();}
+function tCD(){
+ const L=S.lv26;
+ return `<div class="card"><h2>🔒 Fixed Deposits</h2><p class="muted">Lock cash for 1, 3 or 5 years at a guaranteed rate: 3.5%, 5% and 6.5% a year, compounded. Pays out automatically at maturity. Breaking early forfeits interest and costs 3%. Max 6 deposits, $1,000 minimum.</p>
+ <input id="lv26cdA" type="text" inputmode="numeric" placeholder="Amount (min $1,000)">
+ ${CDT.map((t,i)=>btn(`Open ${t[0]}-year (${(t[1]*100).toFixed(1)}%)`,`LV26.cd(${i})`,'good')).join('')}</div>
+ ${L.cds.map((c,i)=>`<div class="card"><b>${money(c.p)}</b> at ${(c.r*100).toFixed(1)}% • ${c.t}-year • matures at age <b>${c.mat}</b> (${Math.max(0,c.mat-S.age)} yr) → pays <b>${money(Math.round(c.p*Math.pow(1+c.r,c.t)))}</b> ${btn('Break early','LV26.cdBreak('+i+')','danger')}</div>`).join('')||'<p class="muted">No fixed deposits yet.</p>'}
+ <p class="muted">Deposits matured so far: ${L.cdDone}</p>`;
+}
+
+/* ---- retirement auto-invest ---- */
+function tRet(){
+ const L=S.lv26,LP=S.lifePlus||{},sal=S.career!=='None'?S.salary:0,bal=LP.retirement||0,yrs=Math.max(0,65-S.age);
+ const con=Math.round(sal*L.k.pct/100),mt=Math.round(sal*Math.min(L.k.pct,6)/100*.5),g=Math.pow(1.02,yrs),proj=Math.round(bal*g+(con+mt)*(yrs?(g-1)/.02:0));
+ return `<div class="card"><h2>🌴 Retirement Auto-Invest</h2><p class="muted">Every age-up while employed, a percentage of your salary is invested in your retirement fund automatically. Your employer matches 50% of the first 6% you contribute (free money).</p>
+ <p>Balance: <b>${money(bal)}</b> • Your contribution: <b>${L.k.pct}%</b> (${money(con)}/yr) • Employer match: <b>${money(mt)}/yr</b></p>
+ <div>${[0,3,6,10,15].map(p=>btn(p+'%',`LV26.pct(${p})`,L.k.pct===p?'gold':'')).join('')}</div>
+ <p class="muted">Rough projection at 65 (assuming 2% average growth): <b>${money(proj)}</b>. Total contributed: ${money(L.k.total)} • Employer match received: ${money(L.k.match)}</p></div>
+ <div class="card"><h3>💰 Lump-sum top-up</h3><p class="muted">Add cash to the retirement fund now (up to $20,000 a year). Used this year: ${money(U('rl'))}.</p>${btn('Add $1,000',"LV26.rlump(1000)")}${btn('Add $10,000',"LV26.rlump(10000)",'good')}${btn('Add $20,000',"LV26.rlump(20000)",'gold')}</div>`;
+}
+
+/* ---- commodities ---- */
+function cbuy(id,mode){
+ if(S.age<18)return popup('🔒 Too young','Investing starts at age 18.');
+ const L=S.lv26,c=L.cp[id];let n=mode==='max'?Math.floor(S.money/c.p):Math.floor(num((q('lv26cq')||{}).value));
+ if(!(n>=1))return popup('Invalid amount',mode==='max'?'You cannot afford a single unit.':'Enter a whole number of units (1 or more).');
+ while(n>0&&Math.round(c.p*n)>S.money)n--;
+ if(n<1)return popup('💸 Not enough cash',`One unit costs ${money(c.p)}.`);
+ const cost=Math.round(c.p*n),h=L.hold[id]||(L.hold[id]={u:0,b:0});S.money-=cost;h.u+=n;h.b+=cost;
+ const d=COM.find(x=>x[0]===id);addEvent(`${d[1]} ${playerName()} bought ${n.toLocaleString()} units of ${d[2].toLowerCase()} for ${money(cost)}.`);toast('Bought '+n.toLocaleString()+' '+d[2]);render();}
+function csell(id,mode){
+ const L=S.lv26,c=L.cp[id],h=L.hold[id];if(!h||!(h.u>0))return popup('📉 Nothing to sell','You hold none.');
+ const n=mode==='all'?h.u:Math.min(h.u,Math.floor(num((q('lv26cq')||{}).value)));
+ if(!(n>=1))return popup('Invalid amount','Enter a whole number of units (1 or more).');
+ const gain=Math.round(c.p*n),cost=h.b*(n/h.u),pf=gain-cost,tax=(S.lv11&&S.lv11.tax&&pf>0)?Math.round(pf*.10):0;
+ S.money+=gain-tax;h.u-=n;h.b=Math.max(0,h.b-cost);if(h.u<=0){h.u=0;h.b=0;}
+ const d=COM.find(x=>x[0]===id);addEvent(`${d[1]} ${playerName()} sold ${n.toLocaleString()} ${d[2].toLowerCase()} for ${money(gain)} (${pf>=0?'profit':'loss'} ${money(Math.abs(pf))}${tax?', tax '+money(tax):''}).`);
+ toast('Sold '+n.toLocaleString()+' '+d[2]+': '+sm(Math.round(pf)));render();}
+function tCom(){
+ const L=S.lv26;
+ return `<div class="card"><h2>🥇 Commodities</h2><p class="muted">Buy and sell physical metals. Prices change every age-up. Gold rises in recessions; copper and platinum follow the economy (now: <b>${econ()}</b>). A 10% tax applies to profits when the income tax is on. Enter a number of units, then press a button.</p>
+ <label>Units</label><input id="lv26cq" type="text" inputmode="numeric" placeholder="e.g. 5"></div>
+ ${grid(COM.map(c=>{const p=L.cp[c[0]],h=L.hold[c[0]]||{u:0,b:0},ch=p.h.length>1?p.p/p.h[p.h.length-2]-1:0,pl=h.u*p.p-h.b;
+  return `<div class="card"><h3>${c[1]} ${c[2]}</h3><p class="muted">${E(c[6])}</p><p>Price <b>$${p.p.toLocaleString('en-US',{maximumFractionDigits:2})}</b> <b class="${cc(ch)}">${(ch>=0?'+':'')+(ch*100).toFixed(1)}%</b><br>${spark(p.h,160,36,ch>=0?'#86efac':'#f87171')}</p>
+  <p>Held <b>${h.u.toLocaleString()}</b> (${money(h.u*p.p)})${h.u?` • P/L <b class="${cc(pl)}">${sm(Math.round(pl))}</b>`:''}</p>
+  ${btn('Buy',`LV26.cb('${c[0]}')`,'good')}${btn('Buy MAX',`LV26.cbm('${c[0]}')`,'gold')}${btn('Sell',`LV26.cs('${c[0]}')`,'',!h.u)}${btn('Sell all',`LV26.csa('${c[0]}')`,'danger',!h.u)}</div>`;}))}`;
+}
+
+/* ---- peer lending ---- */
+function newOffers(){
+ return [0,1,2,3].map(()=>{const rate=r(6,18)/100,risk=clamp(Math.round(rate*100*.7+r(0,3)),3,16);return{n:pick(BN)+' '+pick(['R.','M.','K.','S.','T.']),amt:pick([2000,5000,10000,25000,50000]),rate,term:r(1,3),risk};});
+}
+function lend(i){
+ if(S.age<18)return popup('🔒 Too young','Peer lending is for ages 18+.');
+ const L=S.lv26,o=L.offers[i];if(!o)return;
+ if(L.p2p.length>=6)return popup('🔒 Limit','You can have 6 active loans.');
+ if(S.money<o.amt)return popup('💸 Not enough cash',`This loan needs ${money(o.amt)}.`);
+ S.money-=o.amt;L.p2p.push({n:o.n,p:o.amt,rate:o.rate,left:o.term,risk:o.risk});L.offers.splice(i,1);
+ addEvent(`🤝 ${playerName()} lent ${money(o.amt)} to ${o.n}.`);toast('Loan funded');render();}
+function tP2P(){
+ const L=S.lv26;
+ return `<div class="card"><h2>🤝 Peer Lending</h2><p class="muted">Lend money to other people for interest. Each year a borrower pays interest, but there is a yearly <b>default risk</b> and you lose the remaining principal if they default. Principal returns at the end of the term. New offers appear every age-up. Max 6 active loans.</p>
+ <p>Interest earned in total: <b>${money(L.earned)}</b> • Defaults suffered: ${L.defaults}</p></div>
+ <h3>Offers</h3>${grid(L.offers.map((o,i)=>`<div class="card"><h3>${E(o.n)}</h3><p>${money(o.amt)} at <b>${(o.rate*100).toFixed(0)}%</b> for ${o.term} yr<br><span class="muted">Yearly default risk ${o.risk}% • interest ${money(Math.round(o.amt*o.rate))}/yr</span></p>${btn('Lend',`LV26.lend(${i})`,'good',S.money<o.amt)}</div>`))||'<p class="muted">No offers this year.</p>'}
+ <h3>Your loans</h3>${L.p2p.map(l=>`<div class="card"><b>${E(l.n)}</b> • ${money(l.p)} • ${(l.rate*100).toFixed(0)}% • ${l.left} yr left • risk ${l.risk}%/yr</div>`).join('')||'<p class="muted">No active loans.</p>'}`;
+}
+
+/* ---- insurance ---- */
+const lifePrem=l=>l?Math.round(LIFE[l]*.002*(1+Math.max(0,S.age-30)/20)):0;
+const incPrem=()=>Math.round(Math.max(300,(S.career!=='None'?S.salary:S.lv26.lastSal)*.012));
+function tIns(){
+ const L=S.lv26,I=L.ins;
+ return `<div class="card"><h2>🛡️ Life Insurance</h2><p class="muted">Pays out to your heir when your life ends (added to their cash). Premiums are paid every age-up and rise with age. If you cannot pay, the policy lapses.</p>
+ <p>Current: <b>${I.life?money(LIFE[I.life])+' payout • premium '+money(lifePrem(I.life))+'/yr':'None'}</b></p>
+ ${LIFE.slice(1).map((v,k)=>btn(`${money(v)} (${money(lifePrem(k+1))}/yr)`,`LV26.life(${k+1})`,I.life===k+1?'gold':'')).join('')}${btn('Cancel policy','LV26.life(0)','danger',!I.life)}</div>
+ <div class="card"><h2>💼 Income Protection</h2><p class="muted">If you lose your job (fired, laid off or quit), it pays 40% of your last salary for up to 2 years (age under 65). Premium about 1.2% of salary a year.</p>
+ <p>Status: <b>${I.inc?'✅ Active • '+money(incPrem())+'/yr • claims used '+I.claim+'/2':'Not covered'}</b></p>${btn(I.inc?'Cancel cover':'Buy cover','LV26.inc()',I.inc?'danger':'good')}</div>`;
+}
+
+const MT=[['wealth','📊 Wealth Report',tWealth],['cd','🔒 Fixed Deposits',tCD],['ret','🌴 Retirement Auto-Invest',tRet],['com','🥇 Commodities',tCom],['p2p','🤝 Peer Lending',tP2P],['ins','🛡️ Insurance',tIns]];
+function moneyBox(){
+ const sec=q('moneycenter');if(!sec||!sec.classList.contains('active'))return;
+ let box=q('lv26Money');if(!box){box=document.createElement('div');box.id='lv26Money';box.className='card';sec.appendChild(box);}
+ const a=document.activeElement;if(a&&a.tagName==='INPUT'&&box.contains(a))return;
+ const L=S.lv26,cur=MT.find(x=>x[0]===L.mt)||MT[0];
+ let body;try{body=cur[2]();}catch(e){console.warn(e);body='<div class="muted">This tab hit an error.</div>';}
+ box.innerHTML=`<h2>🏦 Money Center Plus</h2><div class="lv26t">${MT.map(t=>btn(t[1],`LV26.mt('${t[0]}')`,L.mt===t[0]?'gold':'')).join('')}</div>${body}`;
+}
+
+/* =========================================================
+   3. JOB MARKET
+   ========================================================= */
+function newJobs(extra){
+ const pool=careerTracks.filter(t=>t.education<=S.eduLevel&&t.name!==S.careerTrack);
+ return shuf(pool).slice(0,extra?3:6).map(t=>({t:t.name,co:pick(CO)+' '+pick(SUF),m:+((extra?.95+Math.random()*.35:.9+Math.random()*.35)).toFixed(2)}));
+}
+function iOdds(){const LP=S.lifePlus||{};return Math.round(clamp(30+S.performance*.15+S.smarts*.2+safeNumber(S.charisma,50)*.15+S.lv26.resume+(LP.network||0)*2+(LP.careerCoach?5:0)-(S.criminalRecord?20:0),10,90));}
+function applyJob(i){
+ if(S.age<16)return popup('🔒 Too young','You must be 16+.');
+ const L=S.lv26,j=L.jobs[i];if(!j)return;
+ if(S.prisonYears>0)return popup('🔒 Prison','You cannot apply from prison.');
+ if(U('app')>=3)return popup('⏳ Limit reached','Three applications a year.');
+ L.used.app=U('app')+1;L.apps++;
+ const p=iOdds();
+ if(!chance(p)){L.jobs.splice(i,1);S.stats.activities++;addEvent(`💼 ${j.co} did not hire ${playerName()}.`);popup('📭 Not selected',`${E(j.co)} chose another candidate (odds were ${p}%).`);render();return;}
+ const old={c:S.career,t:S.careerTrack,s:S.salary,p:S.performance,l:S.careerLevel};
+ S.career='None';
+ applyCareer(j.t);
+ if(S.careerTrack!==j.t||S.career==='None'){S.career=old.c;L.used.app=U('app')-1;L.apps--;render();return;}
+ S.salary=Math.round(S.salary*j.m);S.performance=Math.max(40,S.performance);L.hired++;L.jobs.splice(i,1);
+ addEvent(`💼 ${playerName()} was hired by ${j.co} as ${S.career} (${money(S.salary)}/yr).`);render();
+}
+function pJobs(){
+ const L=S.lv26,p=iOdds();
+ if(S.age<16)return '<div class="card muted">The job market opens at age 16.</div>';
+ return `<div class="grid"><div class="stat"><small>💼 Current</small><strong>${S.career==='None'?'Unemployed':E(S.career)}</strong></div><div class="stat"><small>🎯 Interview odds</small><strong>${p}%</strong></div><div class="stat"><small>📄 Resume bonus</small><strong>+${L.resume}%</strong></div><div class="stat"><small>📨 Applications</small><strong>${U('app')}/3</strong></div></div><br>
+ <div class="card"><h2>🛠️ Improve your odds</h2><p class="muted">Odds come from performance, smarts, charisma, resume, network, career coach and a clean record.</p>${btn('📄 Polish resume (free) '+U('res')+'/1','LV26.res()','good',U('res')>=1)}${btn('🎤 Mock interview ($150) '+U('mock')+'/1','LV26.mock()','',U('mock')>=1)}${btn('🎪 Career fair ($100) '+U('fair')+'/1','LV26.fair()','gold',U('fair')>=1)}</div>
+ <h2>📋 Open positions</h2><p class="muted">Listings refresh every age-up. Degree and university requirements still apply. Offered pay is the track's starting salary times the multiplier shown. Applying while employed replaces your current job.</p>
+ ${grid(L.jobs.map((j,i)=>{const t=getCareerTrack(j.t);return `<div class="card"><h3>${t?t.icon:'💼'} ${E(t?t.levels[0][0]:j.t)}</h3><p class="muted">${E(j.co)} • ${E(j.t)}<br>Offer: <b>${money(Math.round((t?t.startingSalary:0)*j.m))}/yr</b> (×${j.m})<br>Interview odds ${p}%</p>${btn('Apply',`LV26.apply(${i})`,'good',U('app')>=3)}</div>`;}))||'<p class="muted">No listings. Age up for new ones.</p>'}`;
+}
+
+/* =========================================================
+   4. CASINO EXTRAS: ROULETTE + SLOTS
+   ========================================================= */
+const REDS=[1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+let cb={r:100,s:100},rMsg=null,sMsg=null;
+function cas(){if(!S.casino||typeof S.casino!=='object')S.casino={};const c=S.casino,d={wagered:0,won:0,lost:0,hands:0,wins:0,losses:0,pushes:0,best:0,worst:0,streak:0,bestStreak:0,flipW:0,flipL:0,bjNat:0,bj:null};for(const k in d)if(c[k]===undefined)c[k]=d[k];return c;}
+function cok(w){if(S.dead){popup('🕊️ Life ended','Start a new life first.');return 0;}if(S.age<18){popup('🎰 Casino','You must be <b>18 or older</b>.');return 0;}if(S.prisonYears>0){popup('🔒 Prison','There is no casino in prison.');return 0;}w=Math.floor(w);if(!(w>=1)){popup('🎰 Invalid bet','Enter a bet of at least $1.');return 0;}if(S.money<w){popup('💸 Not enough cash',`You only have <b>${money(S.money)}</b>.`);return 0;}return w;}
+function csettle(w,ret){const c=cas(),net=ret-w;S.money+=ret;c.wagered+=w;c.hands++;
+ if(net>0){c.won+=net;c.wins++;c.best=Math.max(c.best,net);c.streak++;c.bestStreak=Math.max(c.bestStreak,c.streak);fx({happiness:1});}
+ else if(net<0){c.lost+=-net;c.losses++;c.worst=Math.max(c.worst,-net);c.streak=0;fx({happiness:-1});}else c.pushes++;
+ if(Math.abs(net)>=10000)addEvent(`🎰 ${playerName()} ${net>0?'won':'lost'} ${money(Math.abs(net))} at the casino.`);
+ checkAchievements();return net;}
+function roulette(){
+ const w=cok(cb.r);if(!w)return;const L=S.lv26;S.money-=w;
+ const n=r(0,36),isRed=REDS.includes(n),col=n===0?'🟢':isRed?'🔴':'⚫',t=L.ro;let win=false,mult=2;
+ if(t==='red')win=isRed;else if(t==='black')win=n>0&&!isRed;else if(t==='odd')win=n>0&&n%2===1;else if(t==='even')win=n>0&&n%2===0;else if(t==='low')win=n>=1&&n<=18;else if(t==='high')win=n>=19;
+ else{const pk=Math.floor(num((q('lv26rn')||{}).value));if(!(pk>=0&&pk<=36)){S.money+=w;return popup('🎡 Pick a number','Enter a number from 0 to 36.');}win=pk===n;mult=36;if(win)L.rhit++;}
+ const net=csettle(w,win?w*mult:0);
+ rMsg={cls:net>0?'win':'lose',text:`${col} The ball landed on <b>${n}</b>. ${net>0?'You won':'You lost'} ${money(Math.abs(net))}.`};render();}
+const SYM=[['🍒',30,5],['🍋',25,8],['🔔',20,15],['💎',15,40],['7️⃣',10,100]];
+function spin1(){let x=Math.random()*100;for(const s of SYM){if(x<s[1])return s;x-=s[1];}return SYM[0];}
+function slots(){
+ const w=cok(cb.s);if(!w)return;S.money-=w;
+ const a=spin1(),b=spin1(),c=spin1();let ret=0,txt='No match.';
+ if(a[0]===b[0]&&b[0]===c[0]){ret=w*a[2];txt=`THREE ${a[0]}! Pays ${a[2]}x.`;}
+ else if(a[0]===b[0]||b[0]===c[0]||a[0]===c[0]){ret=Math.floor(w*.5);txt='A pair. Half your bet comes back.';}
+ const net=csettle(w,ret);
+ sMsg={cls:net>0?'win':net<0?'lose':'push',text:`${a[0]} ${b[0]} ${c[0]} — ${txt} ${net>=0?'+':'−'}${money(Math.abs(net))}`};render();}
+function casinoExtra(){
+ const pg=q('casino'),el=q('casino_c');if(!pg||!el||!pg.classList.contains('active')||q('lv26Cas'))return;
+ const L=S.lv26,d=document.createElement('div');d.id='lv26Cas';
+ const res=m=>m?`<div class="cas-res ${m.cls}">${m.text}</div>`:'';
+ d.innerHTML=`<div class="card"><h2>🎡 Roulette</h2><p class="muted">37 pockets (0–36). Red/black/odd/even/low/high pay 1:1; a single number pays 35:1. Zero is green and beats every outside bet, so the house has a 2.7% edge.</p>
+ <label class="muted">Bet amount</label><input type="number" min="1" value="${cb.r}" oninput="LV26.cbet('r',this.value)">
+ <select onchange="LV26.rt(this.value)">${[['red','🔴 Red'],['black','⚫ Black'],['odd','Odd'],['even','Even'],['low','Low (1–18)'],['high','High (19–36)'],['num','Single number']].map(x=>`<option value="${x[0]}" ${L.ro===x[0]?'selected':''}>${x[1]}</option>`).join('')}</select>
+ <input id="lv26rn" type="number" min="0" max="36" placeholder="Number 0–36 (for single number)">
+ ${btn('🎡 SPIN','LV26.spin()','gold cas-big')}${res(rMsg)}</div>
+ <div class="card"><h2>🎰 Slots</h2><p class="muted">Three reels. Three of a kind pays: 🍒 5x, 🍋 8x, 🔔 15x, 💎 40x, 7️⃣ 100x. Any pair returns half your bet.</p>
+ <label class="muted">Bet amount</label><input type="number" min="1" value="${cb.s}" oninput="LV26.cbet('s',this.value)">${btn('🎰 PULL','LV26.pull()','gold cas-big')}${res(sMsg)}</div>`;
+ el.appendChild(d);
+}
+
+/* =========================================================
+   5. YEARLY (inside the game's own random-event step so the Time Machine stays consistent)
+   ========================================================= */
+function year26(){
+ const L=S.lv26;L.used={};
+ /* fixed deposits */
+ L.cds=L.cds.filter(c=>{if(S.age>=c.mat){const v=Math.round(c.p*Math.pow(1+c.r,c.t));S.money+=v;S.stats.moneyEarned+=v-c.p;L.cdDone++;addEvent(`🔒 A fixed deposit matured: ${money(c.p)} became ${money(v)}.`);return false;}return true;});
+ /* retirement auto-invest */
+ if(S.career!=='None'&&S.age>=16){const sal=S.salary,con=Math.round(sal*L.k.pct/100),mt=Math.round(sal*Math.min(L.k.pct,6)/100*.5);
+  if(con>0&&S.lifePlus){const pay=Math.min(con,S.money);S.money-=pay;S.lifePlus.retirement=(S.lifePlus.retirement||0)+pay;L.k.total+=pay;
+   if(pay>=con&&mt>0){S.lifePlus.retirement+=mt;L.k.match+=mt;}
+   addEvent(`🌴 Auto-invest: ${money(pay)} contributed${pay>=con&&mt?` + ${money(mt)} employer match`:''}.`);}}
+ /* commodities */
+ const e=econ();
+ COM.forEach(c=>{const p=L.cp[c[0]];let ret=c[5]+(Math.random()*2-1)*c[4];
+  if(c[0]==='gold')ret+=e==='Recession'?.06:e==='Boom'?-.02:0;else ret+=e==='Recession'?-.06:e==='Boom'?.04:0;
+  p.p=Math.max(+(c[3]*.2).toFixed(2),+(p.p*(1+ret)).toFixed(2));p.h.push(p.p);if(p.h.length>20)p.h.shift();});
+ /* peer loans */
+ L.p2p=L.p2p.filter(l=>{
+  if(chance(l.risk)){L.defaults++;addEvent(`💥 ${l.n} defaulted on a ${money(l.p)} peer loan.`);fx({happiness:-3});return false;}
+  const i=Math.round(l.p*l.rate);S.money+=i;L.earned+=i;S.stats.moneyEarned+=i;l.left--;
+  if(l.left<=0){S.money+=l.p;addEvent(`🤝 ${l.n} repaid ${money(l.p)} and ${money(i)} interest.`);return false;}
+  addEvent(`🤝 ${l.n} paid ${money(i)} interest.`);return true;});
+ L.offers=newOffers();
+ /* insurance */
+ const I=L.ins;
+ if(S.career!=='None')L.lastSal=S.salary;
+ if(I.life){const p=lifePrem(I.life);if(S.money>=p){S.money-=p;addEvent(`🛡️ Life insurance premium paid: ${money(p)}.`);}else{I.life=0;addEvent('🛡️ You could not pay your life insurance premium and the policy lapsed.');}}
+ if(I.inc){const p=incPrem();if(S.money>=p){S.money-=p;}else{I.inc=false;addEvent('🛡️ Income protection lapsed (unpaid premium).');}}
+ if(I.inc){if(S.career!=='None')I.claim=0;
+  else if(L.lastSal>0&&S.age<65&&I.claim<2&&!(S.lv11&&S.lv11.retired)){const pay=Math.round(L.lastSal*.4);S.money+=pay;S.stats.moneyEarned+=pay;I.claim++;addEvent(`🛡️ Income protection paid ${money(pay)} while you are out of work.`);}}
+ /* jobs + friends */
+ L.jobs=S.age>=16?newJobs(false):[];
+ friendYear();
+}
+const _rle=window.randomLifeEvent;
+window.randomLifeEvent=function(){
+ if(typeof _rle==='function')_rle.apply(this,arguments);
+ try{init();if(S.lv26.ly!==S.age){S.lv26.ly=S.age;year26();}}catch(e){console.warn('v26 year',e);}
+};
+/* net worth + life-insurance payout to the heir */
+const _nw=window.netWorth;
+window.netWorth=function(){let x=_nw.apply(this,arguments);try{if(S.lv26)x+=cdVal()+p2pVal()+comVal();}catch(e){}return x;};
+const _ch=window.chooseHeir;
+window.chooseHeir=function(i){
+ init();const pay=S.lv26.ins.life?LIFE[S.lv26.ins.life]:0,s0=S;
+ _ch.apply(this,arguments);
+ if(S!==s0&&pay>0){S.money+=pay;addEvent(`🛡️ Life insurance paid ${money(pay)} to the family.`);render();}
+};
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+window.LV26={
+ fr:friendAct,
+ ftext(v){S.lv26.ft=String(v||'');const c=q('lv26fl');if(c)c.innerHTML=friendCards();},
+ fall(){S.lv26.fall=!S.lv26.fall;render();},
+ mt(t){S.lv26.mt=t;render();},
+ cd:openCD,cdBreak:breakCD,
+ pct(p){if(S.age<16)return popup('🔒 Too young','From age 16.');S.lv26.k.pct=p;render();},
+ rlump(a){if(S.age<18)return popup('🔒 Too young','From age 18.');if(U('rl')+a>20000)return popup('⏳ Limit reached','Lump sums are capped at $20,000 a year.');if(S.money<a)return popup('💸 Not enough cash',`You have ${money(S.money)}.`);
+  if(!S.lifePlus)return;S.money-=a;S.lifePlus.retirement=(S.lifePlus.retirement||0)+a;S.lv26.used.rl=U('rl')+a;addEvent(`🌴 ${playerName()} added ${money(a)} to the retirement fund.`);render();},
+ cb(id){cbuy(id,'qty');},cbm(id){cbuy(id,'max');},cs(id){csell(id,'qty');},csa(id){csell(id,'all');},
+ lend,
+ life(l){if(S.age<18)return popup('🔒 Too young','From age 18.');const I=S.lv26.ins;I.life=I.life===l?0:l;if(I.life){const p=lifePrem(I.life);toast('Policy set. First premium is paid at the next age-up.');}render();},
+ inc(){if(S.age<18)return popup('🔒 Too young','From age 18.');const I=S.lv26.ins;if(!I.inc&&S.career==='None'&&!S.lv26.lastSal)return popup('💼 No job history','Get a job first, then buy income protection.');I.inc=!I.inc;I.claim=0;render();},
+ res(){if(S.age<14)return popup('🔒 Too young','From age 14.');const L=S.lv26;if(!use('res',1,'Polishing your resume'))return;L.resume=Math.min(30,L.resume+3);render();},
+ mock(){if(!use('mock',1,'A mock interview',150))return;S.lv26.resume=Math.min(30,S.lv26.resume+5);fx({charisma:1});render();},
+ fair(){if(S.age<16)return popup('🔒 Too young','From age 16.');if(!use('fair',1,'A career fair',100))return;S.lv26.jobs=S.lv26.jobs.concat(newJobs(true));fx({charisma:1});
+  if(S.lifePlus)S.lifePlus.network=(S.lifePlus.network||0)+1;toast('🎪 3 extra listings from the career fair.');render();},
+ apply:applyJob,
+ cbet(k,v){cb[k]=Math.max(0,Math.floor(Number(v)||0));},
+ rt(v){S.lv26.ro=v;},
+ spin:roulette,pull:slots
+};
+/* old Friends page buttons now route to the fixed code */
+if(window.LV25)window.LV25.fr=(i,a)=>friendAct(i,a);
+
+/* =========================================================
+   PAGE + RENDER
+   ========================================================= */
+(function mount(){const main=document.querySelector('main.main'),side=document.querySelector('.sidebar');if(!main||!side||q('v26_jobs'))return;
+ const anc=[...side.querySelectorAll('.nav')].find(x=>(x.getAttribute('onclick')||'').includes("'settings'"))||null;
+ const s=document.createElement('section');s.id='v26_jobs';s.className='page';s.innerHTML='<h1>💼 Job Market</h1><div id="v26_jobs_c"></div>';main.appendChild(s);
+ const b=document.createElement('button');b.className='nav';b.id='nav_v26_jobs';b.textContent='💼 Job Market';b.setAttribute('onclick',"showPage('v26_jobs',this)");side.insertBefore(b,anc);})();
+
+[['Best Friends Forever','Reach 95% with a friend.',()=>(S.friends||[]).some(f=>f.relationship>=95)],['Inner Circle','Have 5 friends at 70%+.',()=>(S.friends||[]).filter(f=>f.relationship>=70).length>=5],['Patient Saver','Have a fixed deposit mature.',()=>S.lv26&&S.lv26.cdDone>=1],['Free Money','Receive $10,000 in employer match.',()=>S.lv26&&S.lv26.k.match>=10000],['Gold Bug','Hold 10 units of gold.',()=>S.lv26&&S.lv26.hold.gold&&S.lv26.hold.gold.u>=10],['Peer Banker','Earn $10,000 in peer-loan interest.',()=>S.lv26&&S.lv26.earned>=10000],['Covered','Hold a life insurance policy.',()=>S.lv26&&S.lv26.ins.life>0],['Job Hunter','Get hired through the Job Market 3 times.',()=>S.lv26&&S.lv26.hired>=3],['Lucky Number','Hit a single number at roulette.',()=>S.lv26&&S.lv26.rhit>=1]].forEach(a=>{if(!achievementNames.some(x=>x[0]===a[0]))achievementNames.push(a);});
+
+const _render=window.render;
+window.render=function(){
+ init();
+ _render.apply(this,arguments);
+ try{
+  moneyBox();casinoExtra();
+  const guard=el=>{const a=document.activeElement;return a&&a.tagName==='INPUT'&&el.contains(a);};
+  let p=q('v25_friends'),el=q('v25_friends_c');
+  if(p&&el&&p.classList.contains('active')&&!guard(el))el.innerHTML=pFriends();
+  p=q('v26_jobs');el=q('v26_jobs_c');
+  if(p&&el&&p.classList.contains('active')&&!guard(el))el.innerHTML=pJobs();
+ }catch(e){console.warn('v26 render',e);}
+};
+init();render();
+})();
+</script>
+
 </body>
 </html>
