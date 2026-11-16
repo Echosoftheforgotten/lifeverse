@@ -13634,5 +13634,343 @@ init();render();
 })();
 </script>
 
+<!-- ===================== LIFEVERSE V27 — THE LIVING WORLD ===================== -->
+<script>
+(function(){
+'use strict';
+if(window.__LV27)return;window.__LV27=1;
+const q=id=>document.getElementById(id),E=escapeHTML;
+const btn=(l,c,cls,d)=>`<button class="action ${cls||''}" ${d?'disabled':''} onclick="${c}">${l}</button>`;
+const bar=(l,v)=>`<div>${l} <b>${Math.round(v)}</b><div class="progress"><div style="width:${clamp(v,0,100)}%"></div></div></div>`;
+const sm=n=>(n<0?'−':'+')+money(Math.abs(n)),cc=x=>x>=0?'green':'red',grid=a=>`<div class="grid">${a.join('')}</div>`;
+const fmt=n=>n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':Math.round(n).toLocaleString('en-US');
+const yr=()=>S.birthYear+S.age;
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function mul(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+/* deterministic stream per save identity + year + subsystem (Time Machine safe, Alter Fate re-rolls) */
+function mk(sub){const f=mul(hash(((S.lv14&&S.lv14.id)||'x')+'|27|'+((S.lv21&&S.lv21.salt)||0)+'|'+yr()+'|'+sub));
+ return{f,i:(a,b)=>a+Math.floor(f()*(b-a+1)),p:a=>a[Math.floor(f()*a.length)],c:p=>f()*100<p};}
+function fx(o){for(const k in o){if(k==='money')S.money=Math.max(0,S.money+o[k]);else S[k]=clamp(Math.round(safeNumber(S[k],50)+o[k]),0,100);}}
+function toast(m){let t=q('lv27t');if(!t){t=document.createElement('div');t.id='lv27t';t.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:92vw;background:#0b1220;border:1px solid #38bdf8;color:#eee;padding:10px 14px;border-radius:10px;z-index:500;transition:.2s;pointer-events:none';document.body.appendChild(t);}t.textContent=m;t.style.opacity=1;clearTimeout(t._h);t._h=setTimeout(()=>t.style.opacity=0,3500);}
+const Q=[];let dr=0;
+function later(f){Q.push(f);if(dr)return;dr=1;(function t(){if(!Q.length){dr=0;return;}const bg=q('popupBg');if(bg.style.display==='flex'||q('startMenu').style.display==='flex'){setTimeout(t,700);return;}Q.shift()();setTimeout(t,700);})();}
+function spark(a,w,h,col){if(!a||a.length<2)return'';const mn=Math.min(...a),mx=Math.max(...a),d=(mx-mn)||1;return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="${col||'#60a5fa'}" stroke-width="2" points="${a.map((v,i)=>(i/(a.length-1)*w).toFixed(1)+','+(h-2-(v-mn)/d*(h-4)).toFixed(1)).join(' ')}"/></svg>`;}
+
+/* ============================== DATA ============================== */
+const K=['pros','emp','aff','infra','hc','edu','saf','env','biz','trans','tech'];
+const KL={pros:'💰 Prosperity',emp:'💼 Employment',aff:'🏠 Affordability',infra:'🏗️ Infrastructure',hc:'🏥 Healthcare',edu:'🎓 Education',saf:'🛡️ Safety',env:'🌿 Environment',biz:'🏢 Business',trans:'🚆 Transport',tech:'💻 Technology'};
+const CD=[['Singapore','🇸🇬','Singapore',5900000,[92,96,57,98,94,95,97,88,90,96,92]],['Tokyo','🇯🇵','Japan',14000000,[90,95,50,97,95,92,95,70,88,98,95]],['London','🇬🇧','United Kingdom',9000000,[86,93,40,90,85,92,78,72,87,90,88]],['New York','🇺🇸','United States',8300000,[90,92,35,85,80,88,70,65,92,82,89]],['San Francisco','🌉','United States',870000,[91,94,25,82,82,90,62,70,90,75,98]],['Berlin','🇩🇪','Germany',3700000,[78,92,60,86,88,88,80,80,75,88,80]],['Sydney','🇦🇺','Australia',5300000,[84,94,45,87,90,90,85,78,78,80,82]],['Dubai','🇦🇪','UAE',3500000,[85,97,55,92,86,80,94,55,86,85,84]],['Mumbai','🇮🇳','India',24000000,[78,89,64,79,75,82,76,61,80,70,74]],['Toronto','🇨🇦','Canada',2900000,[82,92,48,86,90,90,85,80,78,82,84]],['Paris','🇫🇷','France',2200000,[85,90,40,90,88,90,76,72,80,92,84]],['Lisbon','🇵🇹','Portugal',550000,[68,88,62,76,80,78,86,82,66,72,70]],['Bangkok','🇹🇭','Thailand',10500000,[66,93,68,72,76,70,72,52,72,72,66]],['Cape Town','🇿🇦','South Africa',4600000,[58,72,66,62,66,64,48,70,60,58,56]]];
+const SEC=['Technology','Energy','Healthcare','Financials','Consumer','Industrials','Real Estate','Materials','Entertainment','Utilities'];
+const BETA={Technology:1.6,Industrials:1.3,'Real Estate':1.2,Financials:1.2,Entertainment:1.2,Materials:1.1,Energy:1,Consumer:.5,Healthcare:.3,Utilities:.2};
+const SYM={Technology:['NOVA','CHIP','QBIT','CLDX','CYBR'],Energy:['GRNX','SOLR','OILX'],Healthcare:['MEDI','BIOG','PHAR'],Financials:['BANK','INSU','PAYX'],Consumer:['FOOD','LUXE','BREW','SHOP','AGRI'],Industrials:['AERO','AUTO','SPCE','RAIL','ROBO','SHIP'],'Real Estate':['HOME','TOWR'],Materials:['GOLD','LITH','STEL'],Entertainment:['GAME','STRM','SPRT'],Utilities:['UTIL','WATR','TELC']};
+const TSEC={Technology:'Technology','Data Science':'Technology',Cybersecurity:'Technology',Medicine:'Healthcare',Pharmacy:'Healthcare',Veterinary:'Healthcare',Psychology:'Healthcare','Medicine Research':'Healthcare',Finance:'Financials',Business:'Financials','Quantitative Finance':'Financials','Investment Banking':'Financials','Credit Risk':'Financials','Equity Research':'Financials',Entertainment:'Entertainment','Film Production':'Entertainment','Real Estate':'Real Estate',Engineering:'Industrials',Aviation:'Industrials',Architecture:'Real Estate','Environmental Science':'Energy',Hospitality:'Consumer'};
+const trackSec=n=>TSEC[n]||'Industrials';
+const CN1=['Apex','Nimbus','Orion','Helix','Vertex','Summit','Zenith','Lumen','Atlas','Cobalt','Nova','Pioneer','Meridian','Aurora'],CN2=['Group','Labs','Holdings','Systems','Industries','Works','Global','Partners'];
+const FN=['Olivia','Daniel','Sarah','Marcus','Elena','Tomas','Aiko','Dev','Nina','Omar','Lucy','Pedro','Ines','Kofi','Mira','Jamal','Chen','Priya'],LN=['Chen','Park','Silva','Nair','Cole','Moreau','Tan','Ortiz','Khan','Berg','Reed','Hughes'];
+const SH=[['🚀 Rapid economic growth',c=>{c.s.pros+=3;c.s.biz+=3;}],['🏭 Industrial expansion',c=>{c.s.biz+=4;c.s.env-=3;}],['🏘️ Housing shortage',c=>{c.s.aff-=5;c.hp*=1.04;}],['📉 Population decline',c=>{c.pop=Math.round(c.pop*.985);c.s.emp-=2;}],['🏗️ Infrastructure improvements',c=>{c.s.infra+=3;c.s.trans+=3;}],['🧑‍💼 Unemployment rises',c=>{c.s.emp-=4;}],['💻 Technology sector expansion',c=>{c.s.tech+=4;c.s.pros+=2;}],['💸 Rising living costs',c=>{c.s.aff-=3;c.lc*=1.03;}],['🚪 Business closures',c=>{c.s.biz-=4;c.s.emp-=1;}],['🚇 New transport infrastructure',c=>{c.s.trans+=5;c.s.aff+=1;}],['🌡️ Heatwave strains the city',c=>{c.s.env-=2;c.s.hc-=1;}],['🌱 Reforestation initiative',c=>{c.s.env+=3;}]];
+const RC=[['pros','💰 Wealthiest'],['aff','🏠 Most Affordable'],['hc','🏥 Best Healthcare'],['edu','🎓 Best Education'],['saf','🛡️ Safest'],['pg','📈 Fastest Growing'],['emp','💼 Best Employment'],['tech','💡 Most Innovative'],['qol','⭐ Best Quality of Life']];
+const PRJ=[['Public transportation expansion','🚆',800e6,4,{trans:8,emp:3,biz:2}],['Roads and bridges','🛣️',400e6,3,{infra:6,trans:4}],['Airport expansion','✈️',1200e6,5,{infra:5,biz:5,pros:2}],['Railway system','🚄',1500e6,5,{trans:9,infra:4}],['Affordable housing','🏠',300e6,3,{aff:8}],['Residential development','🏘️',500e6,4,{aff:4,pros:1,pg:1}],['New schools','🏫',200e6,3,{edu:7}],['Hospital network','🏥',600e6,4,{hc:8}],['Public parks','🌳',100e6,2,{env:6,saf:1}],['Technology park','💻',700e6,4,{tech:8,biz:4,emp:2}],['Business district','🏙️',900e6,5,{biz:8,emp:3,pros:3}],['Renewable energy plant','☀️',500e6,4,{env:7,tech:2}]];
+const RF=[['AI','🤖'],['Medical technology','🧬'],['Renewable energy','🔋'],['Advanced materials','🧪'],['Space exploration','🚀'],['Biotechnology','🦠'],['Computer science','💾']];
+const PL=[['edu','🎓','Education investment','edu',6],['hc','🏥','Healthcare investment','hc',6],['infra','🚆','Infrastructure program','infra',10],['house','🏠','Housing development','aff',8],['biz','🏢','Business incentives','biz',5],['res','🔬','Research grants','tech',6],['env','🌿','Environmental protection','env',5],['emp','👷','Employment programs','emp',6]];
+const CAP=[['fest','🎪','Local festival',500,3],['char','🎗️','Charity event',2000,5],['impr','🧹','Neighbourhood improvement',5000,6],['vol','🤲','Volunteer day',0,3],['cons','🗣️','Public consultation',0,2]];
+/* multi-year world event chains: stage mods apply every year until the next stage; opts = [label,desc,cash fraction,payoff low,payoff high,flag] */
+const CH=[
+{id:'tech',i:'💡',n:'The Technology Revolution',p:3,gap:[0,1,2,4],st:[{t:'A groundbreaking technology is announced.',m:{innov:3,sec:{Technology:.04}}},{t:'The technology begins spreading.',m:{gdp:.5,innov:3,sec:{Technology:.05}}},{t:'Industries reorganize around it. Some jobs vanish, others appear.',m:{emp:-.5,innov:3,sec:{Technology:.04,Industrials:-.02}}},{t:'The technology is now widely adopted.',m:{gdp:1,innov:2,sec:{Technology:.03}},end:1}],opts:[['📈 Invest in the industry','Back established leaders.',.1,.7,2.6],['🔬 Fund research','Pay for fundamental work.',.03,.8,2.2,'res'],['🏢 Start a tech company','Highest risk and reward.',.15,0,4],['🚫 Ignore it','Stay put.',0,1,1]]},
+{id:'rec',i:'📉',n:'National Economic Recession',p:3.5,gap:[0,1,2,4],st:[{t:'A major economic downturn begins.',m:{gdp:-3,emp:-2,stab:-4,sec:{Technology:-.05,Industrials:-.06,'Real Estate':-.06,Healthcare:.02}},econ:'Recession'},{t:'The downturn deepens. Unemployment rises and companies cut hiring.',m:{gdp:-2,emp:-1.5,stab:-2,sec:{Industrials:-.04,'Real Estate':-.04}}},{t:'Signs of recovery appear.',m:{gdp:.5,emp:.5}},{t:'The recession is over.',m:{gdp:2,emp:1.2,stab:3},end:1,econ:'Stable'}],opts:[['🧾 Reduce spending','Tighten your belt.',0,1,1,'save'],['🏭 Expand a business','Buy while others fear.',.12,.4,2.4],['🛟 Preserve emergency savings','Stay safe.',0,1,1,'safe'],['💰 Invest cautiously','Modest, steady.',.08,.9,1.4],['💼 Seek new employment','Strengthen your position.',0,1,1,'job']]},
+{id:'city',i:'🏗️',n:'A City Transformation',p:3,gap:[0,1,2,4],st:[{t:'redevelopment plan is announced.',m:{}},{t:'construction begins and new companies take interest.',m:{},city:{biz:3,emp:1.5,infra:2}},{t:'new companies arrive and jobs multiply.',m:{gdp:.2},city:{pros:3,biz:3,emp:1}},{t:'population surges and housing demand rises.',m:{},city:{aff:-6,pros:2,trans:3,pgx:1},end:1}],opts:[['🏠 Buy property there','Ride housing demand.',.2,1.2,2.2],['💼 Invest in local firms','Back arriving companies.',.1,.8,2.4],['🤝 Support affordable housing','Keep the city livable.',.05,.9,1.1,'aff'],['🚫 Ignore it','No action.',0,1,1]]},
+{id:'med',i:'🧬',n:'Scientific Breakthrough',p:2.5,gap:[0,1,3,5],st:[{t:'A university discovers a new medical technology.',m:{innov:2,sec:{Healthcare:.04}}},{t:'Research investment surges and medical firms expand.',m:{innov:2,sec:{Healthcare:.05}},city:{tech:2}},{t:'New jobs appear and universities compete for researchers.',m:{emp:.3,sec:{Healthcare:.03}},city:{hc:3,edu:2}},{t:'Healthcare quality improves worldwide.',m:{gdp:.4},city:{hc:4},end:1}],opts:[['💊 Invest in a medical firm','Back the breakthrough.',.1,.8,2.5],['🔬 Fund research','Support the labs.',.04,.8,2.2,'res'],['🧑‍🔬 Take a research job','Join the effort.',0,1,1,'job'],['🚫 Ignore it','No action.',0,1,1]]}];
+
+/* ============================== STATE ============================== */
+function init(){
+ if(!S.lv27||typeof S.lv27!=='object')S.lv27={};const L=S.lv27;
+ const d={ly:-1,tab:'ov',sel:null,cat:'All',world:null,cities:null,countries:null,hist:[],news:[],npcs:[],chains:[],done:[],proj:[],res:[],pol:[],rel:[],co:null,inv:{},fb:[],stand:20,used:{},st:{pd:0,rd:0,yrs:0,iv:0,nw:0},sets:{cn:[],mc:[],gen:[],gb:[],bz:[],ci:[]},rank:99,ranks:{},hc:null,rp:{}};
+ for(const k in d)if(L[k]==null)L[k]=d[k];
+ if(!L.world)seed();
+}
+function seed(){
+ const L=S.lv27,R=mk('seed');L.hc=S.country||'Singapore';
+ L.world={gdp:100,g:2.8,inf:2.6,emp:94,stab:78,pop:8.2e9,innov:100,trade:100,env:70,out:'Positive'};
+ L.cities={};CD.forEach(c=>{L.cities[c[0]]={n:c[0],fl:c[1],cn:c[2],pop:c[3],hp:100,lc:100,hp0:100,pg:0,s:Object.fromEntries(K.map((k,i)=>[k,c[4][i]])),h:[]};});
+ L.cities.Home={n:'Hometown',fl:'🏠',cn:L.hc,pop:R.i(300,900)*1000,hp:100,lc:100,hp0:100,pg:0,s:Object.fromEntries(K.map(k=>[k,R.i(55,75)])),h:[]};
+ L.countries={};Object.values(L.cities).forEach(c=>{if(!L.countries[c.cn])L.countries[c.cn]={g:2.8,idx:100,treas:100,h:[]};});
+ L.co=[];for(let i=0;i<14;i++)L.co.push(newCo(R));
+ const cn=Object.keys(L.countries);for(let i=0;i<12;i++){const a=R.p(cn),b=R.p(cn);if(a!==b&&!L.rel.some(r=>(r.a===a&&r.b===b)||(r.a===b&&r.b===a)))L.rel.push({a,b,tr:R.i(30,70),dp:R.i(40,80)});}
+}
+function newCo(R){const ks=Object.keys(S.lv27.cities),rev=R.i(20,900)*1e6;return{id:'c'+R.i(1000,99999),n:R.p(CN1)+' '+R.p(CN2),ind:R.p(SEC),city:R.p(ks),rev,pf:Math.round(rev*.08),emp:Math.round(rev/160000),rep:R.i(40,80),gr:.03,loss:0,y0:yr()};}
+const pk=()=>(S.v7&&S.v7.city)||'Home';
+const pc=()=>S.lv27.cities[pk()]||S.lv27.cities.Home;
+const cname=c=>c.n;
+function news(cat,t,major){const L=S.lv27;L.news.unshift({y:yr(),c:cat,t});if(L.news.length>90)L.news.length=90;if(major&&L.st.nw<4){L.st.nw++;addNews('🌐 '+t);}}
+const U=id=>S.lv27.used[id]||0;
+function use(id,max,label,cost){cost=cost||0;if(U(id)>=max){popup('⏳ Limit reached',`You already used <b>${E(label)}</b> ${max} time(s) this year.`);return false;}if(S.money<cost){popup('💸 Not enough money',`${E(label)} costs <b>${money(cost)}</b>.`);return false;}S.money-=cost;S.lv27.used[id]=U(id)+1;S.stats.activities++;return true;}
+
+/* ============================== YEARLY WORLD SIMULATION ============================== */
+function year27(){
+ const L=S.lv27,y=yr();L.used={};L.st.nw=0;L.st.yrs++;
+ const W=L.world;let m={gdp:0,emp:0,stab:0,innov:0,sec:{}};
+ advanceChains();
+ L.chains.forEach(c=>{const x=c.cur||{};['gdp','emp','stab','innov'].forEach(k=>m[k]+=(x[k]||0)*c.sev);for(const s in(x.sec||{}))m.sec[s]=(m.sec[s]||0)+x.sec[s]*c.sev;});
+ /* 2-4 global + national */
+ const R=mk('world'),econ=(S.v6&&S.v6.econ&&S.v6.econ.state)||'Stable',resB=L.res.filter(r=>r.done).length;
+ const g=+clamp(2.6+(econ==='Boom'?1.2:econ==='Recession'?-2.4:0)+m.gdp+(W.stab-75)/40+R.i(-12,12)/10,-6,9).toFixed(1);
+ W.g=g;W.gdp=+(W.gdp*(1+g/100)).toFixed(1);
+ W.inf=+clamp(W.inf*.7+(2.5+(g-2.6)*.25+R.i(-8,8)/10)*.3,-1,12).toFixed(1);
+ W.emp=+clamp(W.emp+(g-2.4)*.5+m.emp+(94-W.emp)*.1,80,99).toFixed(1);
+ W.stab=Math.round(clamp(W.stab+R.i(-3,3)+m.stab+(75-W.stab)*.05,20,98));
+ W.innov=+(W.innov*(1+.01+m.innov/100+Math.min(.01,resB*.001))).toFixed(1);
+ W.trade=+(W.trade*(1+g/100*1.1+L.rel.reduce((a,r)=>a+(r.tr-50)/5000,0))).toFixed(1);
+ W.env=+clamp(W.env-.15+R.i(-4,4)/10,20,98).toFixed(1);
+ W.pop=Math.round(W.pop*1.008);W.out=g>=3.5?'Strong':g>=2?'Positive':g>=.5?'Cautious':g>=-1?'Weak':'Recession';
+ news('Global',`Global GDP ${g>=0?'+':''}${g}%, inflation ${W.inf}%, employment ${W.emp}%. Outlook: ${W.out}.`,true);
+ Object.keys(L.countries).forEach(cn=>{const c=L.countries[cn],cs=Object.values(L.cities).filter(x=>x.cn===cn),ap=cs.reduce((a,x)=>a+x.s.pros,0)/cs.length;
+  c.g=+clamp(g+(ap-75)/30+R.i(-6,6)/10+L.pol.filter(p=>p.cn===cn&&(p.k==='biz'||p.k==='emp')).length*.1,-8,10).toFixed(1);c.idx=+(c.idx*(1+c.g/100)).toFixed(1);c.treas=+(c.treas+c.g*.5+3).toFixed(1);c.h.push(c.g);if(c.h.length>60)c.h.shift();});
+ relYear();cityYear(m);projYear();polYear();coYear(m);npcYear();famYear();resYear();playerEffects(m);
+ const rk=rankings();L.ranks=rk;let best=99;for(const k in rk){const i=rk[k].indexOf(pk());if(i>=0)best=Math.min(best,i+1);}L.rank=best;
+ L.hist.push({y,g:W.g,inf:W.inf,emp:W.emp,stab:W.stab,innov:W.innov,gdp:W.gdp});if(L.hist.length>100)L.hist.shift();
+ if(!L.sets.cn.includes(S.country))L.sets.cn.push(S.country);const gn=(S.dynasty&&S.dynasty.generation)||1;
+ if(S.v6&&S.v6.pol&&S.v6.pol.office>=0&&!L.sets.gen.includes(gn))L.sets.gen.push(gn);
+ if(S.lv22&&S.lv22.biz.length){if(!L.sets.gb.includes(gn))L.sets.gb.push(gn);S.lv22.biz.forEach(b=>{if(!b.c27)b.c27=pk();if(!L.sets.ci.includes(b.c27))L.sets.ci.push(b.c27);if(!L.sets.bz.includes(b.t))L.sets.bz.push(b.t);});}
+ if((S.investments||0)+(S.v6&&S.v6.hold?Object.keys(S.v6.hold).length:0)>0)L.st.iv++;
+ standYear();
+}
+function cityYear(m){
+ const L=S.lv27,W=L.world,R=mk('city');const keys=Object.keys(L.cities).sort();
+ keys.forEach(k=>{const c=L.cities[k],s=c.s,cg=(L.countries[c.cn]||{g:W.g}).g,nz=()=>R.i(-10,10)/10;c.hp0=c.hp;
+  s.pros+=(cg-2.6)*.9+(s.tech-60)/120+(s.biz-65)/120+(W.stab-78)/50+nz()*1.1;
+  s.emp+=(s.pros*.97-s.emp)/18+(cg-2.6)*.35+m.emp*.4+nz()*.6;
+  s.aff+=-(s.pros-70)/60-c.pg*60-(c.hp-100)/120+nz()*.5;
+  s.infra+=(s.pros>70?.35:-.1)+nz()*.3;s.trans+=(s.infra-s.trans)/25+nz()*.3;s.hc+=(s.pros-65)/150+nz()*.3;s.edu+=(s.pros-65)/160+nz()*.3;
+  s.saf+=(s.emp-85)/40+nz()*.4;s.env+=-(s.biz-60)/150-(c.pop>12e6?.15:0)+(W.env-70)/150+nz()*.3;s.biz+=(s.pros-s.biz)/15+nz()*.6;s.tech+=.25+(W.innov-100)/200+nz()*.4;
+  if(R.c(10)){const e=R.p(SH);e[1](c);if(k===pk()||c.pop>9e6)news('Local',`${c.n}: ${e[0].replace(/^\S+\s/,'')}.`,k===pk());}
+  K.forEach(x=>{s[x]=+clamp(s[x],x==='emp'?40:1,x==='emp'?99:100).toFixed(1);});
+  c.pg=+((s.pros-62)/1800+(s.emp-85)/4000-(100-s.aff)/20000+nz()/1000+(c.pgx||0)*.01).toFixed(4);c.pgx=0;c.pop=Math.round(c.pop*(1+c.pg));
+  c.hp=+clamp(c.hp*(1+(s.pros-72)/500+c.pg*2+(cg-2.6)/250+nz()/200),40,500).toFixed(1);c.lc=+(c.lc*(1+W.inf/100+(s.pros-70)/2000)).toFixed(1);
+  c.h.push([Math.round(s.pros),Math.round(s.infra)]);if(c.h.length>60)c.h.shift();});
+ /* connect to the existing housing market (V17) */
+ const p=pc();if(S.lv17&&S.lv17.mk&&S.lv17.mk.F){const dh=clamp(p.hp/p.hp0-1,-.05,.05),F=S.lv17.mk.F;for(const h in F)F[h]=clamp(F[h]*(1+dh),.35,4);}
+}
+function rankings(){const L=S.lv27,ks=Object.keys(L.cities),v={pros:c=>c.s.pros,aff:c=>c.s.aff,hc:c=>c.s.hc,edu:c=>c.s.edu,saf:c=>c.s.saf,pg:c=>c.pg,emp:c=>c.s.emp,tech:c=>c.s.tech,qol:c=>(c.s.aff+c.s.hc+c.s.edu+c.s.saf+c.s.env+c.s.trans)/6},o={};
+ RC.forEach(r=>{o[r[0]]=ks.slice().sort((a,b)=>v[r[0]](L.cities[b])-v[r[0]](L.cities[a]));});return o;}
+
+/* ---- chains ---- */
+function advanceChains(){
+ const L=S.lv27,y=yr(),R=mk('chain');
+ if(L.chains.length<2&&L.st.yrs>3)CH.forEach(d=>{if(L.chains.length<2&&!L.chains.some(c=>c.id===d.id)&&R.c(d.p)){const ks=Object.keys(L.cities);L.chains.push({id:d.id,y0:y,s:-1,sev:+(.7+R.f()*.9).toFixed(2),tg:d.id==='city'?(R.c(50)?pk():R.p(ks)):null,ch:null,cost:0,cur:{}});}});
+ L.chains=L.chains.filter(c=>{const d=CH.find(x=>x.id===c.id);if(!d)return false;const i=d.gap.indexOf(y-c.y0);if(i<0)return true;
+  const st=d.st[i],cty=c.tg&&L.cities[c.tg];c.s=i;c.cur=st.m||{};
+  if(st.econ&&S.v6&&S.v6.econ)S.v6.econ.state=st.econ;
+  if(st.city&&cty){for(const k in st.city){if(k==='pgx')cty.pgx=st.city[k];else cty.s[k]=clamp(cty.s[k]+st.city[k],1,100);}}
+  const txt=(cty?cty.n+': ':'')+st.t;news('World Events',`${d.i} ${d.n}: ${txt}`,true);
+  if(c.id==='rec'&&i===1&&S.career!=='None'&&!['safe','job'].includes((d.opts[c.ch]||[])[5])&&R.c(12*c.sev)){addEvent('📉 You lost your job in the recession.');S.career='None';S.careerTrack='None';S.salary=0;S.careerLevel=0;S.performance=50;news('Employment','You were laid off as the recession deepened.',false);}
+  if(i===0)later(()=>decision(`${d.i} ${d.n}`,E(txt)+'<br>What will you do?',d.opts.map((o,j)=>({title:o[0],description:o[1]+(o[2]?' (about '+Math.round(o[2]*100)+'% of your cash)':''),class:j===0?'good':'',action:()=>choose(c.id,j)}))));
+  if(st.end){const o=d.opts[c.ch==null?d.opts.length-1:c.ch];if(c.cost>0){const mm=o[3]+R.f()*(o[4]-o[3]),pay=Math.round(c.cost*mm);S.money+=pay;addEvent(`${d.i} Your ${d.n} stake returned ${money(pay)} (${sm(pay-c.cost)}).`);news('Personal',`Your ${d.n.toLowerCase()} stake returned ${money(pay)}.`,true);}
+   if(o[5]==='res'&&R.c(40)&&S.lv15){S.lv15.pat++;addEvent('💡 Your research funding produced a patent.');}
+   L.done.push({id:c.id,y,n:d.n});if(L.done.length>20)L.done.shift();if(st.econ&&S.v6&&S.v6.econ)S.v6.econ.state=st.econ;return false;}
+  return true;});
+}
+function choose(id,j){const L=S.lv27,c=L.chains.find(x=>x.id===id),d=CH.find(x=>x.id===id);if(!c||c.ch!=null)return;const o=d.opts[j],cost=Math.min(Math.round(S.money*o[2]),S.money);
+ S.money-=cost;c.cost=cost;c.ch=j;if(o[5]==='save'){fx({discipline:3,happiness:-2});}if(o[5]==='job')S.performance=clamp(S.performance+10,0,100);if(o[5]==='aff'){const t=L.cities[c.tg];if(t)t.s.aff=clamp(t.s.aff+3,1,100);L.stand=clamp(L.stand+3,0,100);}
+ addEvent(`${d.i} ${playerName()} chose: ${o[0].replace(/^\S+\s/,'')}${cost?' ('+money(cost)+')':''}.`);render();}
+
+/* ---- relations ---- */
+function relYear(){const L=S.lv27,R=mk('rel'),cn=Object.keys(L.countries);
+ L.rel.forEach(r=>{r.tr=clamp(r.tr+R.i(-3,3),0,100);r.dp=clamp(r.dp+R.i(-3,3),0,100);});
+ if(R.c(55)&&cn.length>1){const a=R.p(cn);let b=R.p(cn);if(a===b)return;let r=L.rel.find(x=>(x.a===a&&x.b===b)||(x.a===b&&x.b===a));if(!r){r={a,b,tr:50,dp:55};L.rel.push(r);}
+  const ev=R.i(0,3);const t=['established a trade agreement','introduced new import restrictions','launched a research partnership','opened to foreign investors'][ev];
+  if(ev===0){r.tr=clamp(r.tr+12,0,100);L.countries[a].g+=.2;L.countries[b].g+=.2;}else if(ev===1)r.tr=clamp(r.tr-10,0,100);else if(ev===2){r.dp=clamp(r.dp+10,0,100);L.world.innov*=1.002;}else{Object.values(L.cities).filter(c=>c.cn===a).forEach(c=>c.s.biz=clamp(c.s.biz+1.5,1,100));}
+  news('Global',`${a} and ${b} ${t}.`,false);}
+ if(L.rel.length>30)L.rel.shift();
+}
+
+/* ---- projects ---- */
+function projYear(){
+ const L=S.lv27,R=mk('proj'),ks=Object.keys(L.cities).sort();
+ L.proj=L.proj.filter(p=>{if(p.done)return false;p.left--;if(p.left>0)return true;
+  const c=L.cities[p.city],f=1+Math.min(.3,p.mine/p.cost*50);for(const k in p.eff){if(k==='pg')c.pgx=(c.pgx||0)+p.eff[k];else c.s[k]=clamp(c.s[k]+p.eff[k]*f,1,100);}
+  if(p.mine>0){const ret=Math.round(p.inv*1.25+(L.stand>=70?p.inv*.05:0));if(ret>0){S.money+=ret;addEvent(`🏗️ ${p.n} in ${c.n} completed. Your investment returned ${money(ret)}.`);}L.st.pd++;if(!L.sets.mc.includes(c.cn))L.sets.mc.push(c.cn);L.stand=clamp(L.stand+4,0,100);}
+  news('Local',`${c.n} completed: ${p.n}.`,p.city===pk()||p.mine>0);if(p.eff.env)L.world.env=Math.min(98,L.world.env+.2);return false;});
+ if(L.proj.filter(p=>!p.done).length<8)ks.forEach(k=>{const c=L.cities[k],pr=k===pk()?18:5;if(L.proj.length<8&&R.c(pr)){const t=R.p(PRJ),sc=Math.max(.2,c.pop/6e6);const cost=Math.round(t[2]*sc/1e6)*1e6||1e6;L.proj.push({city:k,n:t[0],i:t[1],cost,dur:t[3],left:t[3],eff:t[4],mine:0,inv:0});news('Local',`${c.n} announced a ${t[0].toLowerCase()} (${money(cost)}, ${t[3]} years).`,k===pk());}});
+}
+function fund(i,amt,mode){const p=S.lv27.proj[i];if(!p)return;if(S.age<18)return popup('🔒 Too young','Projects are for ages 18+.');if(S.money<amt)return popup('💸 Not enough cash',`You have ${money(S.money)}.`);
+ if(mode==='co'&&!(S.lv22&&S.lv22.biz.length))return popup('🏢 No company','You need an owned business.');
+ S.money-=amt;p.mine+=amt;if(mode==='inv'||mode==='co'){p.inv+=amt;}else{fx({reputation:Math.min(5,1+Math.floor(amt/1e6)),happiness:2});S.lv27.stand=clamp(S.lv27.stand+Math.min(6,2+amt/5e5),0,100);}
+ if(mode==='co'){S.lv27.stand=clamp(S.lv27.stand+2,0,100);}if(S.lv27.cities[p.city])S.lv27.cities[p.city].mine=1;
+ if(!S.lv27.sets.pp)S.lv27.sets.pp=[];if(!S.lv27.sets.pp.includes(p.city))S.lv27.sets.pp.push(p.city);
+ addEvent(`🏗️ ${playerName()} ${mode==='don'?'donated':'invested'} ${money(amt)} in ${p.n} (${S.lv27.cities[p.city].n}).`);render();}
+
+/* ---- policy ---- */
+const ruler=()=>(S.v6&&S.v6.pol&&S.v6.pol.office>=0)||(S.lv8&&S.lv8.royal&&S.lv8.royal.active&&S.lv9&&S.lv9.realm);
+function appr(d){if(S.lv9&&S.lv9.gov)S.lv9.gov.ap=clamp(S.lv9.gov.ap+d,0,100);else fx({reputation:Math.round(d/2)});}
+function polYear(){const L=S.lv27,cn=S.country,C=L.countries[cn];
+ L.pol=L.pol.filter(p=>{if(!ruler()){return false;}const d=PL.find(x=>x[0]===p.k);if(!C||C.treas<p.cost){appr(-3);addEvent(`🏛️ ${d[2]} stalled: the treasury could not fund it.`);return true;}
+  C.treas-=p.cost;p.left--;Object.values(L.cities).filter(c=>c.cn===cn).forEach(c=>{c.s[d[3]]=clamp(c.s[d[3]]+1.5,1,100);c.s.pros=clamp(c.s.pros+.4,1,100);});if(p.k==='res')L.world.innov*=1.003;
+  appr(-1);if(p.left<=0){appr(6);addEvent(`🏛️ Policy completed: ${d[2]}.`);news('National',`${cn} completed its ${d[2].toLowerCase()} policy.`,true);return false;}return true;});}
+function propose(k){if(!ruler())return popup('🏛️ No office','Hold political office or rule a realm first.');const L=S.lv27,d=PL.find(x=>x[0]===k);
+ if(L.pol.some(p=>p.k===k))return popup('🏛️ Already active','This policy is already being implemented.');if(L.pol.length>=3)return popup('🏛️ Limit','Three policies can run at once.');if(!use('pol'+k,1,'Proposing a policy'))return;
+ const cost=d[4];decision('🏛️ Policy proposal',`${E(d[2])}: costs <b>${cost}</b> treasury units a year for 3 years and improves ${KL[d[3]]||'the economy'} across ${E(S.country)}.`,[{title:'✅ Approve',class:'good',description:'Fund and implement it over 3 years.',action:()=>{L.pol.push({k,cost,left:3,cn:S.country});addEvent(`🏛️ ${playerName()} approved: ${d[2]}.`);render();}},{title:'❌ Reject',description:'Not now.',action:()=>render()}]);}
+
+/* ---- companies, markets ---- */
+function coYear(m){
+ const L=S.lv27,R=mk('co'),W=L.world;let ann=0;const dead=[];
+ const eff={};SEC.forEach(s=>{eff[s]=clamp(BETA[s]*(W.g-2.6)/100+(m.sec[s]||0)+R.i(-10,10)/1000,-.1,.12);});
+ L.co.forEach(c=>{const city=L.cities[c.city],bz=((city&&city.s.biz)||65);c.gr=+clamp(.02+eff[c.ind]*1.5+(bz-65)/400+R.i(-40,40)/1000,-.3,.35).toFixed(3);c.rev=Math.round(c.rev*(1+c.gr));c.pf=Math.round(c.rev*(.08+R.i(-6,6)/100)+0);c.emp=Math.max(1,Math.round(c.rev/160000));c.rep=clamp(c.rep+R.i(-3,3),5,100);
+  c.loss=c.pf<0?c.loss+1:0;if(ann<3&&R.c(6)){ann++;const t=R.i(0,3),nm=c.n;news('Business',[`${nm} (${c.ind}) announced international expansion.`,`${nm} reported record profits.`,`${nm} reported disappointing earnings.`,`${nm} announced a major partnership.`][t],true);if(t===0)c.rev=Math.round(c.rev*1.1);if(t===2)c.rev=Math.round(c.rev*.94);}
+  if(c.loss>=3){dead.push(c);news('Business',`${c.n} closed after repeated losses.`,true);}});
+ if(R.c(10)&&L.co.length>6){const a=R.p(L.co),b=L.co.filter(x=>x!==a&&x.ind===a.ind)[0];if(b&&!dead.includes(b)&&b.rev<a.rev){a.rev+=b.rev;a.emp+=b.emp;dead.push(b);news('Business',`${a.n} acquired ${b.n}.`,true);}}
+ L.co=L.co.filter(c=>!dead.includes(c));while(L.co.length<14){const n=newCo(R);L.co.push(n);if(R.c(50))news('Business',`${n.n} launched as a new ${n.ind.toLowerCase()} company.`,false);}
+ L.eff=eff;
+ /* stock market: nudge existing prices by sector conditions (prices only; holdings untouched) */
+ if(S.v6&&S.v6.stocks){SEC.forEach(sec=>{const f=1+clamp(eff[sec]*.6,-.08,.08);(SYM[sec]||[]).forEach(t=>{const s=S.v6.stocks[t];if(s&&s.p>0)s.p=Math.max(.25,Math.round(s.p*f*100)/100);});});
+  const hi=SEC.reduce((a,b)=>eff[a]>eff[b]?a:b),lo=SEC.reduce((a,b)=>eff[a]<eff[b]?a:b);news('Financial Markets',`${hi} stocks led the market; ${lo} lagged.`,true);}
+ /* player stakes in companies */
+ for(const id in L.inv){const c=L.co.find(x=>x.id===id),v=L.inv[id];if(!c){addEvent('📉 A company you invested in closed. The stake was lost.');delete L.inv[id];continue;}L.inv[id]=Math.round(v*(1+c.gr+R.i(-20,20)/1000));const dv=Math.round(L.inv[id]*.03);if(dv>0){S.money+=dv;S.stats.moneyEarned+=dv;}}
+ /* job market integration (V26 listings) */
+ if(S.lv26&&Array.isArray(S.lv26.jobs)){const p=pc(),f=.85+p.s.pros/330;S.lv26.jobs=S.lv26.jobs.filter(j=>!(eff[trackSec(j.t)]<-.02&&R.c(45))&&!(p.s.emp<85&&R.c(20))).map(j=>({...j,m:+(j.m*f*(1+(eff[trackSec(j.t)]||0)*1.5)).toFixed(2)}));}
+}
+function playerEffects(m){
+ const L=S.lv27,p=pc();
+ /* business revenue reacts to local business activity */
+ if(S.lv22&&S.lv22.biz.length){S.lv22.biz.forEach(b=>{if(b.profit>0){const dlt=Math.round(b.profit*clamp((p.s.biz-65)/400+L.world.g/100*.3,-.08,.08));if(dlt){S.money=Math.max(0,S.money+dlt);b.profit+=dlt;}}});}
+ /* local conditions touch health and happiness */
+ if(p.s.env<40)fx({health:-1});if(p.s.hc>85)fx({health:1});if(p.s.saf<40&&S.age>16)fx({happiness:-1});
+ /* salary follows employment demand */
+ if(S.career!=='None'&&S.age>=18&&L.world.g>3.5)S.salary=Math.round(S.salary*1.01);
+}
+
+/* ---- NPCs (hybrid: max 20 detailed, everyone else is statistical) ---- */
+const careers=()=>careerTracks.map(t=>t.name);
+function npcYear(){
+ const L=S.lv27,R=mk('npc'),ks=Object.keys(L.cities).sort();
+ const names=new Set((S.friends||[]).map(f=>f.name));
+ L.npcs=L.npcs.filter(n=>n.dead||names.has(n.n)||n.src!=='f');
+ (S.friends||[]).slice().sort((a,b)=>b.relationship-a.relationship).slice(0,14).forEach(f=>{if(L.npcs.length<20&&!L.npcs.some(n=>n.n===f.name)){const a=Math.max(8,S.age+R.i(-6,6));L.npcs.push({n:f.name,src:'f',age:a,city:pk(),job:'',sal:0,w:a>20?R.i(1,60)*1000:0,ms:'single',kids:0,biz:0,ret:0,log:[]});}});
+ let shown=0;
+ L.npcs.forEach(n=>{if(n.dead)return;n.age++;const f=(S.friends||[]).find(x=>x.name===n.n),rel=f?f.relationship:60;const say=t=>{n.log.unshift({y:yr(),t});if(n.log.length>5)n.log.length=5;if(shown<4&&rel>=45){shown++;news('Friends',t,false);}};
+  const cy=L.cities[n.city]||pc(),nm=n.n.split(' ')[0];
+  if(n.age>=18&&!n.job&&!n.ret&&R.c(35+(cy.s.emp-85))){n.job=R.p(careers());n.sal=Math.round((getCareerTrack(n.job)||{startingSalary:45000}).startingSalary*(.85+cy.s.pros/200));say(`Your friend ${n.n} found a job as ${n.job}.`);}
+  else if(n.job&&!n.ret){if(R.c(12)){n.sal=Math.round(n.sal*1.15);say(`${nm} was promoted.`);}else if(R.c(Math.max(1,6-(cy.s.emp-80)/4))){n.job='';n.sal=0;say(`${nm} lost their job.`);}else if(R.c(3)){n.job=R.p(careers());say(`${nm} changed careers to ${n.job}.`);}else if(!n.biz&&R.c(2.5)){n.biz=1;if(!L.sets.nb)L.sets.nb=[];L.sets.nb.push(n.n);say(`${nm} started a company.`);}}
+  if(n.age>=63&&n.job&&R.c(25)){n.ret=1;n.job='';n.sal=0;say(`${nm} retired.`);}
+  if(n.ms==='single'&&n.age>=22&&n.age<45&&R.c(7)){n.ms='married';say(`${nm} got married.`);}else if(n.ms==='married'&&n.age<42&&R.c(8)){n.kids++;say(`${nm} had a child.`);}
+  if(R.c(5)){const t=R.p(ks);if(t!==n.city){n.city=t;say(`${nm} moved to ${L.cities[t].n}.`);}}
+  const w0=n.w;n.w=Math.round(n.w*1.04+n.sal*.15+(n.biz?n.sal*.2:0));if(w0<1e6&&n.w>=1e6)say(`${nm} became a millionaire.`);
+  if(n.age>=85&&R.c(Math.min(60,(n.age-84)*6))){n.dead=1;n.job='';}});
+ L.npcs=L.npcs.filter(n=>!n.dead);
+}
+function famYear(){
+ const L=S.lv27,R=mk('fam'),econ=(L.eff&&L.eff.Consumer)||0;
+ (S.childProfiles||[]).forEach(c=>{if(!c.alive||c.age<22)return;c.l27=c.l27||{};const l=c.l27,a=c.name.split(' ')[0];
+  c.money=(c.money||0)+Math.round((c.salary||0)*.12);
+  if(!l.abroad&&R.c(2.5)){l.abroad=1;news('Family',`${c.name} moved abroad.`,true);}
+  if(!l.house&&c.money>150000&&R.c(30)){l.house=1;c.money-=150000;news('Family',`${a} bought a house.`,true);}
+  if(!l.biz&&c.age>=25&&c.age<=55&&R.c(3)){l.biz=1;L.fb.push({id:'f'+R.i(1000,99999),n:`${c.name.split(' ').pop()} & ${a} Ltd`,owner:c.name,val:R.i(2,40)*50000,pct:0,gen:(S.dynasty&&S.dynasty.generation)||1,disp:0});news('Family',`${c.name} started a business: ${L.fb[L.fb.length-1].n}.`,true);}
+  if(R.c(2)&&c.age<60){c.salary=Math.round((c.salary||40000)*1.12);}});
+ L.fb.forEach(b=>{b.val=Math.round(b.val*(1+(pc().s.biz-65)/400+L.world.g/100*.5+R.i(-40,60)/1000));if(b.pct>0){const dv=Math.round(b.val*b.pct/100*.05);S.money+=dv;S.stats.moneyEarned+=dv;}
+  if(R.c(4)){b.disp=1;b.val=Math.round(b.val*.92);news('Family',`A dispute shook ${b.n}. Hold a board meeting to settle it.`,true);}});
+ if(L.fb.length&&!L.sets.gb.includes(((S.dynasty&&S.dynasty.generation)||1)))L.sets.gb.push((S.dynasty&&S.dynasty.generation)||1);
+}
+function dynRep(){const L=S.lv27,g=(S.dynasty&&S.dynasty.generation)||1;
+ const w=Math.min(30,Math.log10(Math.max(10,netWorth()))*3),b=Math.min(15,L.fb.length*5+((S.lv22&&S.lv22.biz.length)||0)*3),ed=Math.min(10,(S.lv18?S.lv18.grads:0)*3+(S.eduLevel>=3?3:0)),sv=Math.min(15,L.sets.gen.length*6),ph=Math.min(15,((S.lv12&&S.lv12.given)||0)/1e5),lg=Math.min(15,((S.dynasty&&S.dynasty.legacyScore)||0)/10+g*2);
+ return{tot:Math.round(w+b+ed+sv+ph+lg),parts:[['💰 Wealth',w],['🏢 Businesses',b],['🎓 Education',ed],['🏛️ Public service',sv],['🎁 Philanthropy',ph],['📜 Legacy',lg]]};}
+
+/* ---- research ---- */
+function resYear(){const L=S.lv27,R=mk('res');
+ L.res=L.res.filter(r=>{if(r.done)return false;r.left--;if(r.left>0)return true;
+  const ok=R.c(60+Math.min(25,S.smarts/4)+r.boost*5);L.world.innov*=ok?1.004:1;
+  if(ok){L.st.rd++;let m='';if(S.lv15){S.lv15.pat++;S.lv15.roy+=R.i(2000,9000);m=' A patent was granted.';}const g=R.i(20000,150000);S.money+=g;fx({reputation:3,fame:2});if(r.f==='Space exploration'&&S.lv9)S.lv9.trips=(S.lv9.trips||0)+0;addEvent(`🔬 ${r.f} research succeeded.${m} Grant: ${money(g)}.`);news('Science',`A ${r.f.toLowerCase()} research programme succeeded.`,true);}
+  else{addEvent(`🔬 ${r.f} research did not pan out.`);}return false;});}
+function startRes(i){const L=S.lv27,f=RF[i];if(S.age<18)return popup('🔒 Too young','Research is for ages 18+.');if(L.res.length>=3)return popup('🔬 Limit','Three projects at a time.');if(!use('res'+i,1,'This field',50000))return;
+ L.res.push({f:f[0],i:f[1],left:3+(hash(f[0]+yr())%4),boost:0});addEvent(`🔬 ${playerName()} began ${f[0]} research.`);render();}
+function boostRes(i){const r=S.lv27.res[i];if(!r)return;if(!use('rb'+i,1,'Extra funding',100000))return;r.boost++;r.left=Math.max(1,r.left-1);render();}
+
+/* ---- community standing ---- */
+function standYear(){const L=S.lv27;L.stand=clamp(L.stand*.97+((S.lv12&&S.lv12.given)>5e4?.4:0)+((S.lv21&&S.lv21.sponsor)||0)*.4+(S.reputation-50)/60+((S.lv15&&S.lv15.vol)||0)*.05,0,100);
+ if(L.stand>=20&&S.lifePlus)S.lifePlus.network=(S.lifePlus.network||0)+1;if(L.stand>=50)fx({reputation:1});if(L.stand>=80){const m=3000;S.money+=m;}}
+const titles=()=>{const s=S.lv27.stand,t=[];if(s>=20)t.push('Community Contributor');if(s>=40&&S.lv22&&S.lv22.biz.length)t.push('Local Business Leader');if(s>=55&&((S.lv12&&S.lv12.given)||0)>=5e4)t.push('Philanthropist');if(s>=70)t.push('Civic Champion');if(s>=85)t.push('Distinguished Citizen');return t;};
+function capAct(k){const a=CAP.find(x=>x[0]===k);if(S.age<10)return popup('🔒 Too young','From age 10.');if(!use('cap'+k,1,a[2],a[3]))return;S.lv27.stand=clamp(S.lv27.stand+a[4],0,100);fx({happiness:2,reputation:1});addEvent(`${a[1]} ${playerName()} organized a ${a[2].toLowerCase()}.`);render();}
+
+/* ============================== WRAPPERS ============================== */
+const _rle=window.randomLifeEvent;
+window.randomLifeEvent=function(){
+ if(typeof _rle==='function')_rle.apply(this,arguments);
+ try{init();if(S.lv27.ly!==yr()){S.lv27.ly=yr();year27();}}catch(e){console.warn('v27 year',e);}
+};
+const _ch=window.chooseHeir;
+window.chooseHeir=function(){const keep=S.lv27?JSON.parse(JSON.stringify(S.lv27)):null,s0=S;_ch.apply(this,arguments);if(S!==s0&&keep){keep.used={};keep.npcs=keep.npcs.filter(n=>n.src!=='f');S.lv27=keep;render();}};
+const _nw=window.netWorth;
+window.netWorth=function(){let x=_nw.apply(this,arguments);try{if(S.lv27){x+=Object.values(S.lv27.inv).reduce((a,b)=>a+b,0);S.lv27.fb.forEach(b=>{x+=Math.round(b.val*b.pct/100);});}}catch(e){}return x;};
+
+/* ============================== ACTIONS ============================== */
+let prof=[];
+window.LV27={
+ tab(t){S.lv27.tab=t;render();},sel(k){S.lv27.sel=k;render();},cat(c){S.lv27.cat=c;render();},go(t){showPage('v27_world',q('nav_v27_world'));S.lv27.tab=t;render();},
+ fund,res:startRes,boost:boostRes,prop:propose,cap:capAct,
+ move(k){if(window.V7&&V7.move)V7.move(k);},
+ pol(k){propose(k);},
+ inv(id,a){if(S.age<18)return popup('🔒 Too young','From age 18.');if(S.money<a)return popup('💸 Not enough cash',`You have ${money(S.money)}.`);const L=S.lv27,c=L.co.find(x=>x.id===id);if(!c)return;S.money-=a;L.inv[id]=(L.inv[id]||0)+a;const cn=L.cities[c.city]&&L.cities[c.city].cn;if(!L.sets.ic)L.sets.ic=[];if(cn&&!L.sets.ic.includes(cn))L.sets.ic.push(cn);addEvent(`🏢 ${playerName()} invested ${money(a)} in ${c.n}.`);render();},
+ sellInv(id){const L=S.lv27,v=L.inv[id];if(!v)return;S.money+=v;delete L.inv[id];render();},
+ fam(i,a){const b=S.lv27.fb[i];if(!b)return;if(a==='inv'){const amt=Math.min(S.money,Math.max(10000,Math.round(b.val*.1)));if(amt<10000)return popup('💸 Not enough cash','Needs at least $10,000.');if(b.pct+amt/b.val*100>49)return popup('🏢 Max stake','You can hold up to 49%.');S.money-=amt;b.pct=+(b.pct+amt/b.val*100).toFixed(1);b.val+=amt;addEvent(`🏢 ${playerName()} bought ${(amt/b.val*100).toFixed(1)}% of ${b.n}.`);}
+  else if(a==='board'){if(!use('board'+i,1,'A board meeting'))return;if(b.disp){b.disp=0;b.val=Math.round(b.val*1.04);S.lv27.stand=clamp(S.lv27.stand+1,0,100);}fx({reputation:1});}render();},
+ prof(i){const p=prof[i];if(!p)return;popup('👤 '+E(p.n),`<p>${E(p.role)} • Age ${p.age}${p.alive===false?' • 🕊️ Deceased':''}</p><p>${[p.career?'💼 '+E(p.career):'',p.w!=null?'💰 '+money(p.w):'',p.rel!=null?'❤️ '+p.rel+'%':'',p.note||''].filter(Boolean).join('<br>')}</p>`);}
+};
+
+/* ============================== UI ============================== */
+const TABS=[['ov','🌍 Overview'],['co','🏳️ Countries'],['ci','🏙️ Cities'],['ev','📰 World Events'],['ec','📈 Economy'],['rk','🏆 Rankings'],['pr','🏗️ Projects'],['rs','🔬 Research'],['po','🏛️ Policy'],['cm','🤝 Community'],['dy','🌳 Dynasty'],['np','🧑‍🤝‍🧑 People'],['rl','🌐 Relations'],['hi','📊 History']];
+const statRow=(c,keys)=>keys.map(k=>`<td>${Math.round(c.s[k])}</td>`).join('');
+function tOv(){const L=S.lv27,W=L.world,p=pc();return `<div class="card"><h2>🌎 LIFEVERSE TIMES — GLOBAL ECONOMIC REPORT ${yr()}</h2><div class="grid">
+ <div class="stat"><small>Global GDP index</small><strong>${W.gdp}</strong></div><div class="stat"><small>Growth</small><strong class="${cc(W.g)}">${W.g>=0?'+':''}${W.g}%</strong></div><div class="stat"><small>Inflation</small><strong>${W.inf}%</strong></div><div class="stat"><small>Employment</small><strong>${W.emp}%</strong></div><div class="stat"><small>Stability</small><strong>${W.stab}%</strong></div><div class="stat"><small>Innovation</small><strong>${W.innov}</strong></div><div class="stat"><small>Trade</small><strong>${W.trade}</strong></div><div class="stat"><small>Environment</small><strong>${W.env}</strong></div><div class="stat"><small>Population</small><strong>${fmt(W.pop)}</strong></div><div class="stat"><small>Outlook</small><strong>${W.out}</strong></div></div><p class="muted">Simulated game values, not real-world statistics.</p></div>
+ <div class="card"><h3>📍 Your city: ${p.fl} ${E(p.n)}</h3><p class="muted">${E(p.cn)} • population ${fmt(p.pop)} • ${L.rank<99?'best global ranking #'+L.rank:''}</p>${K.map(k=>bar(KL[k],p.s[k])).join('')}</div>
+ ${L.chains.length?`<div class="card"><h3>⏳ Ongoing world storylines</h3>${L.chains.map(c=>{const d=CH.find(x=>x.id===c.id);return `<p>${d.i} <b>${E(d.n)}</b> • started ${c.y0} • stage ${c.s+1}/4${c.ch!=null?' • your choice: '+E(d.opts[c.ch][0]):''}</p>`;}).join('')}</div>`:''}`;}
+function tCo(){const L=S.lv27;return `<div class="card" style="overflow-x:auto"><table><tr><th>Country</th><th>Growth</th><th>GDP idx</th><th>Treasury</th><th>Avg prosperity</th><th>Trend</th></tr>${Object.keys(L.countries).sort().map(n=>{const c=L.countries[n],cs=Object.values(L.cities).filter(x=>x.cn===n);return `<tr><td><b>${E(n)}</b></td><td class="${cc(c.g)}">${c.g>=0?'+':''}${c.g}%</td><td>${c.idx}</td><td>${c.treas}</td><td>${Math.round(cs.reduce((a,x)=>a+x.s.pros,0)/cs.length)}</td><td>${spark(c.h,80,22)}</td></tr>`;}).join('')}</table></div>`;}
+function tCi(){const L=S.lv27,keys=Object.keys(L.cities),sel=L.cities[L.sel]?L.sel:pk(),c=L.cities[sel],p=pc();
+ return `<div class="card"><select onchange="LV27.sel(this.value)">${keys.map(k=>`<option value="${k}" ${k===sel?'selected':''}>${L.cities[k].fl} ${E(L.cities[k].n)}</option>`).join('')}</select></div>
+ <div class="card"><h2>${c.fl} ${E(c.n)} <span class="muted">(${E(c.cn)})</span></h2><p>👥 Population <b>${fmt(c.pop)}</b> (${c.pg>=0?'+':''}${(c.pg*100).toFixed(2)}%/yr) • 🏠 Housing index <b>${c.hp}</b> • 💵 Cost of living index <b>${c.lc}</b></p>${K.map(k=>bar(KL[k],c.s[k])).join('')}
+ <p>${spark(c.h.map(x=>x[0]),160,30,'#60a5fa')} prosperity ${spark(c.h.map(x=>x[1]),160,30,'#4ade80')} infrastructure</p>${sel===pk()?'<span class="badge">📍 You live here</span>':btn('Relocate here','LV27.move(\''+sel+'\')','gold')}</div>
+ <div class="card" style="overflow-x:auto"><h3>Compare before moving</h3><table><tr><th>City</th><th>Pros.</th><th>Empl.</th><th>Afford.</th><th>Health</th><th>Safety</th><th>Pop.</th></tr>${keys.map(k=>{const x=L.cities[k];return `<tr><td>${x.fl} ${E(x.n)}${k===pk()?' 📍':''}</td><td>${Math.round(x.s.pros)}</td><td>${Math.round(x.s.emp)}</td><td>${Math.round(x.s.aff)}</td><td>${Math.round(x.s.hc)}</td><td>${Math.round(x.s.saf)}</td><td>${fmt(x.pop)}</td></tr>`;}).join('')}</table><p class="muted">Moving cost and pay changes use the existing Cities page rules. Travel is temporary; relocation changes your residence.</p></div>`;}
+function tEv(){const L=S.lv27,cats=['All'].concat([...new Set(L.news.map(n=>n.c))]),f=L.news.filter(n=>L.cat==='All'||n.c===L.cat);
+ return `<div class="card"><h2>📰 THE LIFEVERSE TIMES</h2><div>${cats.map(c=>btn(c,`LV27.cat('${c}')`,L.cat===c?'gold':'')).join('')}</div></div>`+(f.slice(0,40).map(n=>`<div class="news"><b>${n.y} • ${E(n.c)}</b><br>${E(n.t)}</div>`).join('')||'<p class="muted">Age up to see headlines.</p>')+(L.done.length?`<div class="card"><h3>Past storylines</h3>${L.done.map(d=>`<p>${d.y}: ${E(d.n)} ended.</p>`).join('')}</div>`:'');}
+function tEc(){const L=S.lv27,p=pc();const rows=careerTracks.slice(0,14).map(t=>{const sec=trackSec(t.name),e=(L.eff&&L.eff[sec])||0,sal=Math.round(t.startingSalary*(.85+p.s.pros/200)*(1+e));return{n:t.name,i:t.icon,sal,d:e};}).sort((a,b)=>b.sal-a.sal);
+ return `<div class="grid"><div class="stat"><small>Unemployment (your city)</small><strong>${(100-p.s.emp).toFixed(1)}%</strong></div><div class="stat"><small>Vacancies (est.)</small><strong>${fmt(Math.round(p.pop*p.s.biz/1200))}</strong></div><div class="stat"><small>Salary growth</small><strong>${(L.world.g*.6+L.world.inf*.3).toFixed(1)}%</strong></div><div class="stat"><small>Your income</small><strong>${money(S.salary||0)}</strong></div></div><br>
+ <div class="card" style="overflow-x:auto"><h3>💼 Average starting salary by career (your city)</h3><table><tr><th>Career</th><th>Salary</th><th>Demand</th></tr>${rows.map(r=>`<tr><td>${r.i} ${E(r.n)}</td><td>${money(r.sal)}</td><td class="${cc(r.d)}">${r.d>.02?'High':r.d<-.02?'Weak':'Steady'}</td></tr>`).join('')}</table></div>
+ <div class="card" style="overflow-x:auto"><h3>🏢 Major companies</h3><table><tr><th>Company</th><th>Industry</th><th>City</th><th>Revenue</th><th>Profit</th><th>Staff</th><th>Growth</th><th>Your stake</th></tr>${L.co.slice().sort((a,b)=>b.rev-a.rev).map(c=>`<tr><td>${E(c.n)}</td><td>${c.ind}</td><td>${E((L.cities[c.city]||{}).n||'')}</td><td>${money(c.rev)}</td><td class="${cc(c.pf)}">${sm(c.pf)}</td><td>${fmt(c.emp)}</td><td class="${cc(c.gr)}">${(c.gr*100).toFixed(1)}%</td><td>${L.inv[c.id]?money(L.inv[c.id])+' '+btn('Sell','LV27.sellInv(\''+c.id+'\')','danger'):btn('$10k','LV27.inv(\''+c.id+'\',10000)')+btn('$100k','LV27.inv(\''+c.id+'\',100000)','good')}</td></tr>`).join('')}</table><p class="muted">Company stakes follow their growth, pay a 3% yearly dividend and are lost if the company closes. Sector conditions also nudge existing stock prices in the Exchange.</p></div>`;}
+function tRk(){const L=S.lv27;return grid(RC.map(r=>{const o=L.ranks[r[0]]||rankings()[r[0]];return `<div class="card"><h3>${r[1]}</h3>${o.slice(0,5).map((k,i)=>`<p>${i+1}. ${L.cities[k].fl} ${E(L.cities[k].n)}${k===pk()?' 📍':''}</p>`).join('')}<p class="muted">Your city: #${o.indexOf(pk())+1}</p></div>`;}));}
+function tPr(){const L=S.lv27;return `<div class="card"><p class="muted">Public projects progress each year. Donate for reputation and community standing, or invest for a 1.25x return at completion. Funders also boost the final effect. Completed with your money: <b>${L.st.pd}</b>.</p></div>`+(L.proj.map((p,i)=>{const c=L.cities[p.city];return `<div class="card"><h3>${p.i} ${E(p.n)} — ${c.fl} ${E(c.n)}</h3><p class="muted">Cost ${money(p.cost)} • ${p.left} year(s) left • effects: ${Object.entries(p.eff).map(([k,v])=>(KL[k]||k)+' +'+v).join(', ')}${p.mine?' • you put in '+money(p.mine):''}</p>${btn('Donate $10k','LV27.fund('+i+',10000,\'don\')')}${btn('Donate $1M','LV27.fund('+i+',1000000,\'don\')')}${btn('Invest $100k','LV27.fund('+i+',100000,\'inv\')','good')}${btn('Invest $10M','LV27.fund('+i+',10000000,\'inv\')','good')}${btn('Via my company $1M','LV27.fund('+i+',1000000,\'co\')','gold')}</div>`;}).join('')||'<p class="muted">No active projects.</p>');}
+function tRs(){const L=S.lv27;return `<div class="card"><p class="muted">Multi-year research ($50,000 to start, max 3). Success grants patents/royalties (Inventions), a grant, fame, and raises global innovation. Successes so far: <b>${L.st.rd}</b></p></div>${grid(RF.map((f,i)=>`<div class="card"><h3>${f[1]} ${f[0]}</h3>${btn('Start '+U('res'+i)+'/1','LV27.res('+i+')','good',U('res'+i)>=1)}</div>`))}<h3>Active</h3>${L.res.map((r,i)=>`<div class="card"><b>${r.i} ${r.f}</b> • ${r.left} year(s) left${r.boost?' • boosted x'+r.boost:''} ${btn('Extra funding ($100k)','LV27.boost('+i+')','',U('rb'+i)>=1)}</div>`).join('')||'<p class="muted">Nothing in progress.</p>'}`;}
+function tPo(){const L=S.lv27;if(!ruler())return '<div class="card muted">Policies are available when you hold political office or rule a realm (Politics / Royal Court pages).</div>';const C=L.countries[S.country]||{treas:0};
+ return `<div class="card"><p>National treasury units: <b>${C.treas}</b> • Active ${L.pol.length}/3</p><p class="muted">Propose, approve, then it is funded yearly for 3 years. Approval dips while it runs and rises on completion. Underfunded policies stall and cost approval.</p></div>${grid(PL.map(d=>`<div class="card"><h3>${d[1]} ${d[2]}</h3><p class="muted">Improves ${KL[d[3]]||'jobs'} • ${d[4]} units/yr</p>${L.pol.find(p=>p.k===d[0])?'<span class="badge">In progress</span>':btn('Propose','LV27.pol(\''+d[0]+'\')','',U('pol'+d[0])>=1)}</div>`))}`;}
+function tCm(){const L=S.lv27,t=titles();return `<div class="card"><h2>🤝 Community standing: ${Math.round(L.stand)}/100</h2>${bar('Standing',L.stand)}<p>${t.map(x=>'🏅 '+E(x)).join(' • ')||'No titles yet.'}</p><p class="muted">Perks: 20+ extra networking each year, 50+ reputation each year, 70+ better project returns, 80+ a yearly $3,000 community stipend.</p></div>${grid(CAP.map(a=>`<div class="card"><h3>${a[1]} ${a[2]}</h3><p class="muted">${a[3]?money(a[3]):'Free'} • +${a[4]} standing</p>${btn('Do it '+U('cap'+a[0])+'/1','LV27.cap(\''+a[0]+'\')','',U('cap'+a[0])>=1)}</div>`))}`;}
+function tree(){prof=[];const ef=S.extendedFamily||{},add=(arr,role,f)=>(arr||[]).map(p=>{prof.push({n:p.name,role:p.role||role,age:p.age,alive:p.alive,career:p.career,w:p.wealth!=null?p.wealth:p.money,rel:p.relationship!=null?p.relationship:p.rel,note:f?f(p):''});return prof.length-1;});
+ const G=[['Great-grandparents',add(ef.greatGrandparents,'Great-grandparent')],['Grandparents',add(ef.grandparents,'Grandparent')],['Parents',add(S.parents,'Parent')],['Aunts & uncles',add((ef.aunts||[]).concat(ef.uncles||[]),'Relative')],['Cousins',add(ef.cousins,'Cousin')],['Siblings',add(S.siblings,'Sibling')],['Partner',add(S.partner?[S.partner]:[],'Partner')],['Children',add(S.childProfiles,'Child',c=>c.l27?[c.l27.biz?'🏢 runs a business':'',c.l27.house?'🏠 owns a house':'',c.l27.abroad?'✈️ lives abroad':''].filter(Boolean).join('<br>'):'')],['Grandchildren',add(S.lv24&&S.lv24.gc,'Grandchild')]];
+ return G.map(g=>`<div class="card"><h3>${g[0]}</h3>${g[1].map(i=>btn(E(prof[i].n)+(prof[i].alive===false?' 🕊️':''),'LV27.prof('+i+')')).join('')||'<span class="muted">None</span>'}</div>`).join('');}
+function tDy(){const L=S.lv27,d=dynRep();return `<div class="card"><h2>👑 Dynasty reputation: ${d.tot}</h2>${d.parts.map(p=>bar(p[0],p[1]/15*100)).join('')}<p class="muted">Generation ${(S.dynasty&&S.dynasty.generation)||1}. Generations in public service: ${L.sets.gen.length}. Generations with businesses: ${L.sets.gb.length}.</p></div>
+ <div class="card"><h3>🏢 Family businesses</h3>${L.fb.map((b,i)=>`<p><b>${E(b.n)}</b> • owner ${E(b.owner)} • value ${money(b.val)} • your stake ${b.pct}%${b.disp?' • ⚠️ dispute':''}<br>${btn('Buy a stake','LV27.fam('+i+',\'inv\')','good')}${btn('Board meeting '+U('board'+i)+'/1','LV27.fam('+i+',\'board\')','',U('board'+i)>=1)}</p>`).join('')||'<p class="muted">Adult children (22+) may start businesses. Your stakes pass to your heir.</p>'}</div><h2>🌳 Family tree (click for profile)</h2>${tree()}`;}
+function tNp(){const L=S.lv27;return `<div class="card"><p class="muted">Detailed simulation covers up to 20 named contacts. Everyone else is simulated statistically.</p></div>`+grid(L.npcs.map(n=>`<div class="card"><h3>${E(n.n)}</h3><p class="muted">Age ${n.age} • ${E((L.cities[n.city]||{}).n||'')} • ${n.ms}${n.kids?' • '+n.kids+' kid(s)':''}<br>${n.job?'💼 '+E(n.job)+' ('+money(n.sal)+')':n.ret?'🌴 Retired':'No job'} • 💰 ${money(n.w)}${n.biz?' • 🏢 owner':''}</p>${n.log.map(l=>`<div class="news" style="font-size:12px">${l.y}: ${E(l.t)}</div>`).join('')}</div>`))||'<p class="muted">Make friends to build your network.</p>';}
+function tRl(){const L=S.lv27;return `<div class="card" style="overflow-x:auto"><table><tr><th>Countries</th><th>Trade</th><th>Diplomacy</th></tr>${L.rel.slice().sort((a,b)=>b.tr-a.tr).map(r=>`<tr><td>${E(r.a)} ↔ ${E(r.b)}</td><td>${bar('',r.tr)}</td><td>${bar('',r.dp)}</td></tr>`).join('')}</table><p class="muted">Agreements raise growth in both countries; restrictions lower trade. Business owners and investors feel it through local business activity.</p></div>`;}
+function tHi(){const L=S.lv27,h=L.hist,c=L.cities[L.sel]||pc();return `<div class="card"><h3>Global history (${h.length} years)</h3><p>Growth ${spark(h.map(x=>x.g),240,40,'#60a5fa')} Inflation ${spark(h.map(x=>x.inf),240,40,'#f87171')}</p><p>Employment ${spark(h.map(x=>x.emp),240,40,'#4ade80')} Innovation ${spark(h.map(x=>x.innov),240,40,'#c084fc')}</p></div><div class="card" style="overflow-x:auto"><h3>${E(c.n)} — last 8 years</h3><table><tr><th>Year</th><th>Economy</th><th>Infrastructure</th></tr>${c.h.slice(-8).map((x,i,a)=>`<tr><td>${yr()-(a.length-1-i)}</td><td>${x[0]}</td><td>${x[1]}</td></tr>`).join('')}</table></div>`;}
+const BODY={ov:tOv,co:tCo,ci:tCi,ev:tEv,ec:tEc,rk:tRk,pr:tPr,rs:tRs,po:tPo,cm:tCm,dy:tDy,np:tNp,rl:tRl,hi:tHi};
+function page(){const p=q('v27_world'),el=q('v27_world_c');if(!p||!el||!p.classList.contains('active'))return;const L=S.lv27;
+ let b;try{b=(BODY[L.tab]||tOv)();}catch(e){console.warn(e);b='<div class="card muted">This tab hit an error.</div>';}
+ el.innerHTML=`<div>${TABS.map(t=>btn(t[1],`LV27.tab('${t[0]}')`,L.tab===t[0]?'gold':'')).join('')}</div><br>${b}`;}
+function inject(){
+ const card=(sec,id,html)=>{const s=q(sec);if(!s)return;let e=q(id);if(!e){e=document.createElement('div');e.id=id;e.className='card';s.appendChild(e);}e.innerHTML=html;};
+ const L=S.lv27,p=pc(),W=L.world;
+ card('dashboard','lv27Dash',`<h2>🌐 World Pulse</h2><div class="grid"><div class="stat"><small>Global outlook</small><strong>${W.out}</strong></div><div class="stat"><small>Growth</small><strong>${W.g}%</strong></div><div class="stat"><small>${p.fl} ${E(p.n)} employment</small><strong>${Math.round(p.s.emp)}%</strong></div><div class="stat"><small>Standing</small><strong>${Math.round(L.stand)}</strong></div></div><p class="muted">${L.news.slice(0,2).map(n=>E(n.t)).join('<br>')}</p>${btn('Open World Pulse','LV27.go(\'ov\')','gold')}`);
+ card('v7_city','lv27City',`<h2>🌐 City Profile & Compare</h2><p class="muted">Live stats, rankings and development projects for every city.</p>${btn('Open city profiles','LV27.go(\'ci\')','gold')}${btn('City projects','LV27.go(\'pr\')')}`);
+ card('v25_friends','lv27Npc',`<h2>🌐 Contacts' lives</h2>${L.npcs.filter(n=>n.log.length).slice(0,5).map(n=>`<div class="news">${E(n.log[0].t)}</div>`).join('')||'<p class="muted">Updates appear each year.</p>'}${btn('See everyone','LV27.go(\'np\')')}`);
+ card('dynasty','lv27Dyn',`<h2>🌐 Dynasty reputation: ${dynRep().tot}</h2>${btn('Family tree & businesses','LV27.go(\'dy\')','gold')}`);
+}
+(function mount(){const main=document.querySelector('main.main'),side=document.querySelector('.sidebar');if(!main||!side||q('v27_world'))return;
+ const anc=[...side.querySelectorAll('.nav')].find(x=>(x.getAttribute('onclick')||'').includes("'settings'"))||null;
+ const s=document.createElement('section');s.id='v27_world';s.className='page';s.innerHTML='<h1>🌐 World Pulse</h1><div id="v27_world_c"></div>';main.appendChild(s);
+ const b=document.createElement('button');b.className='nav';b.id='nav_v27_world';b.textContent='🌐 World Pulse';b.setAttribute('onclick',"showPage('v27_world',this)");side.insertBefore(b,anc);})();
+
+const L7=()=>S.lv27;
+[['Community Builder','Complete 3 city projects you funded.',()=>L7()&&L7().st.pd>=3],['Urban Visionary','Fund a project in a city whose infrastructure reaches 95.',()=>L7()&&Object.values(L7().cities).some(c=>c.mine&&c.s.infra>=95)],['Economic Powerhouse','Own businesses in 3 different cities.',()=>L7()&&L7().sets.ci.length>=3],['Global Investor','Invest in companies in 5 countries.',()=>L7()&&(L7().sets.ic||[]).length>=5],['Dynasty of Influence','Have 3 generations in public service.',()=>L7()&&L7().sets.gen.length>=3],['Corporate Empire','Own businesses in 5 industries.',()=>L7()&&L7().sets.bz.length>=5],['Generational Success','3 generations operate businesses.',()=>L7()&&L7().sets.gb.length>=3],['Community Legend','Reach 100 community standing.',()=>L7()&&L7().stand>=99.5],['Research Pioneer','Complete 5 research successes.',()=>L7()&&L7().st.rd>=5],['World Contributor','Fund projects in 3 countries.',()=>L7()&&L7().sets.mc.length>=3],['City Champion','Live in a top-5 city in any ranking.',()=>L7()&&L7().rank<=5],['Global Citizen','Live in 5 countries.',()=>L7()&&L7().sets.cn.length>=5],['Business Network','Know 10 NPC business owners.',()=>L7()&&(L7().sets.nb||[]).length>=10],['Long-Term Investor','Hold investments for 40 years.',()=>L7()&&L7().st.iv>=40],['Living History','Record 100 years of world history.',()=>L7()&&L7().st.yrs>=100]].forEach(a=>{if(!achievementNames.some(x=>x[0]===a[0]))achievementNames.push(a);});
+
+const _render=window.render;
+window.render=function(){init();_render.apply(this,arguments);try{inject();page();}catch(e){console.warn('v27 render',e);}};
+init();render();
+})();
+</script>    
+
 </body>
 </html>
